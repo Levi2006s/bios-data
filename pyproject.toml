@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bioos-data-pipeline"
+version = "1.0.0"
+description = "Reproducible data processing for the 4th Bio-OS antibody dataset"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+bioos-audit = "bioos_benchmark.audit:main"
+bioos-prepare = "bioos_benchmark.prepare:main"
+bioos-split = "bioos_benchmark.split:main"
+bioos-validate = "bioos_benchmark.validate:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
