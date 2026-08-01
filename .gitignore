@@ -5,4 +5,9 @@ __pycache__/
 data/processed/
 artifacts/
 *.joblib
-
+work/
+tmp/
+output/
+outputs/
+.agents/
+.codex/

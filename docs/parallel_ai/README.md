@@ -2,7 +2,7 @@
 
 > 依据：`idea.md` 中的初赛方案与当前仓库的数据处理基线  
 > 适用阶段：初赛——抗原–抗体亲和力排序  
-> 文档状态：方案已完成，模型代码待两位同学分别实现
+> 文档状态：方案已完成；数学路线 B1/B2/B3 已实现并验证，计算机路线待实现
 
 ## 1. 为什么拆成两条路线
 
@@ -84,6 +84,8 @@ PLM embedding      偏好 pair / 质量权重
 文档：[B3_EVALUATION_AND_ENSEMBLE.md](math/B3_EVALUATION_AND_ENSEMBLE.md)
 
 计算严格切分下的 Spearman、置信区间、负对照和两路线百分位集成。
+
+数学路线的完整运行顺序见：[math/README.md](math/README.md)。
 
 ## 6. 三个并行里程碑
 

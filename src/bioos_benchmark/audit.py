@@ -4,17 +4,43 @@ import argparse
 import csv
 import hashlib
 import json
+import re
 from collections import Counter
 from pathlib import Path
 
-from .data import ALIASES, _find_key, _header_and_rows, infer_direction, normalize_sequence, parse_number
+from .data import AA20, ALIASES, _find_key, _header_and_rows, infer_direction, normalize_sequence, parse_number
 
 
 AUDIT_FIELDS = [
     "source_group", "source_file", "bytes", "sha256", "raw_rows", "valid_rows",
+    "column_count", "columns_json", "numeric_label_rows", "missing_or_invalid_label_rows",
+    "valid_heavy_rows", "missing_heavy_rows", "invalid_heavy_rows",
     "heavy_column", "light_column", "antigen_column", "cdrh3_column", "label_column",
     "direction_guess", "with_light", "with_antigen", "with_cdrh3", "status", "note",
+    "invalid_light", "invalid_antigen", "invalid_cdrh3",
+    "heavy_min_len", "heavy_mean_len", "heavy_max_len",
+    "light_min_len", "light_mean_len", "light_max_len",
+    "antigen_min_len", "antigen_mean_len", "antigen_max_len",
+    "cdrh3_min_len", "cdrh3_mean_len", "cdrh3_max_len",
+    "label_min", "label_mean", "label_max",
 ]
+
+
+def sequence_state(value: object) -> tuple[str, str]:
+    """Return normalized sequence plus missing/valid/invalid state."""
+    raw = str(value or "").strip()
+    if not raw:
+        return "", "missing"
+    letters = re.sub(r"[^A-Za-z]", "", raw).upper()
+    if not letters or not set(letters) <= AA20:
+        return "", "invalid"
+    return letters, "valid"
+
+
+def length_summary(lengths: list[int]) -> tuple[object, object, object]:
+    if not lengths:
+        return "", "", ""
+    return min(lengths), sum(lengths) / len(lengths), max(lengths)
 
 
 def file_sha256(path: Path) -> str:
@@ -38,6 +64,13 @@ def audit_file(path: Path, data_root: Path, compute_hash: bool) -> dict[str, obj
         "sha256": file_sha256(path) if compute_hash else "",
         "raw_rows": 0,
         "valid_rows": 0,
+        "column_count": len(header),
+        "columns_json": json.dumps(header, ensure_ascii=False),
+        "numeric_label_rows": 0,
+        "missing_or_invalid_label_rows": 0,
+        "valid_heavy_rows": 0,
+        "missing_heavy_rows": 0,
+        "invalid_heavy_rows": 0,
         "heavy_column": keys.get("heavy") or "",
         "light_column": keys.get("light") or "",
         "antigen_column": keys.get("antigen_seq") or "",
@@ -49,37 +82,92 @@ def audit_file(path: Path, data_root: Path, compute_hash: bool) -> dict[str, obj
         "with_cdrh3": 0,
         "status": "unusable",
         "note": "",
+        "invalid_light": 0,
+        "invalid_antigen": 0,
+        "invalid_cdrh3": 0,
+        "heavy_min_len": "",
+        "heavy_mean_len": "",
+        "heavy_max_len": "",
+        "light_min_len": "",
+        "light_mean_len": "",
+        "light_max_len": "",
+        "antigen_min_len": "",
+        "antigen_mean_len": "",
+        "antigen_max_len": "",
+        "cdrh3_min_len": "",
+        "cdrh3_mean_len": "",
+        "cdrh3_max_len": "",
+        "label_min": "",
+        "label_mean": "",
+        "label_max": "",
     }
     if not header:
         result["note"] = "No recognized header in first 80 rows"
         return result
     if not keys.get("heavy"):
         result["note"] = "No recognized heavy-chain column"
-        return result
-    if not keys.get("label"):
+    elif not keys.get("label"):
         result["note"] = "No directly numeric supported label column"
-        return result
-    result["direction_guess"] = infer_direction(header, str(keys["label"]))
+    else:
+        result["direction_guess"] = infer_direction(header, str(keys["label"]))
+    lengths: dict[str, list[int]] = {
+        "heavy": [], "light": [], "antigen": [], "cdrh3": [],
+    }
+    valid_labels: list[float] = []
     for values in rows:
         result["raw_rows"] = int(result["raw_rows"]) + 1
         if len(values) < len(header):
             values += [""] * (len(header) - len(values))
         row = dict(zip(header, values))
-        heavy = normalize_sequence(row.get(str(keys["heavy"]), ""))
-        label = parse_number(row.get(str(keys["label"]), ""))
+        heavy, heavy_state = sequence_state(
+            row.get(str(keys["heavy"]), "") if keys.get("heavy") else ""
+        )
+        label = (
+            parse_number(row.get(str(keys["label"]), ""))
+            if keys.get("label")
+            else None
+        )
+        if heavy_state == "valid":
+            result["valid_heavy_rows"] = int(result["valid_heavy_rows"]) + 1
+            lengths["heavy"].append(len(heavy))
+        elif heavy_state == "missing":
+            result["missing_heavy_rows"] = int(result["missing_heavy_rows"]) + 1
+        else:
+            result["invalid_heavy_rows"] = int(result["invalid_heavy_rows"]) + 1
+        if label is None:
+            result["missing_or_invalid_label_rows"] = int(result["missing_or_invalid_label_rows"]) + 1
+        else:
+            result["numeric_label_rows"] = int(result["numeric_label_rows"]) + 1
+        for key_name, result_name, invalid_name, length_name in (
+            ("light", "with_light", "invalid_light", "light"),
+            ("antigen_seq", "with_antigen", "invalid_antigen", "antigen"),
+            ("cdrh3", "with_cdrh3", "invalid_cdrh3", "cdrh3"),
+        ):
+            if not keys.get(key_name):
+                continue
+            sequence, state = sequence_state(row.get(str(keys[key_name]), ""))
+            if state == "valid":
+                result[result_name] = int(result[result_name]) + 1
+                lengths[length_name].append(len(sequence))
+            elif state == "invalid":
+                result[invalid_name] = int(result[invalid_name]) + 1
         if not heavy or label is None:
             continue
         result["valid_rows"] = int(result["valid_rows"]) + 1
-        if keys.get("light") and normalize_sequence(row.get(str(keys["light"]), "")):
-            result["with_light"] = int(result["with_light"]) + 1
-        if keys.get("antigen_seq") and normalize_sequence(row.get(str(keys["antigen_seq"]), "")):
-            result["with_antigen"] = int(result["with_antigen"]) + 1
-        if keys.get("cdrh3") and normalize_sequence(row.get(str(keys["cdrh3"]), "")):
-            result["with_cdrh3"] = int(result["with_cdrh3"]) + 1
+        valid_labels.append(label)
+    for name in ("heavy", "light", "antigen", "cdrh3"):
+        minimum, mean, maximum = length_summary(lengths[name])
+        result[f"{name}_min_len"] = minimum
+        result[f"{name}_mean_len"] = mean
+        result[f"{name}_max_len"] = maximum
+    if valid_labels:
+        result["label_min"] = min(valid_labels)
+        result["label_mean"] = sum(valid_labels) / len(valid_labels)
+        result["label_max"] = max(valid_labels)
     if int(result["valid_rows"]) > 0:
         result["status"] = "usable"
         result["note"] = "Direction is heuristic until manually verified from the paper"
-    else:
+    elif not result["note"]:
         result["note"] = "Header recognized but no valid numeric labeled records"
     return result
 
@@ -99,6 +187,17 @@ def audit(data_root: Path, output: Path, compute_hash: bool) -> dict[str, object
         "status": dict(status),
         "raw_rows": sum(int(row["raw_rows"]) for row in rows),
         "valid_rows": sum(int(row["valid_rows"]) for row in rows),
+        "numeric_label_rows": sum(int(row["numeric_label_rows"]) for row in rows),
+        "missing_or_invalid_label_rows": sum(int(row["missing_or_invalid_label_rows"]) for row in rows),
+        "valid_heavy_rows": sum(int(row["valid_heavy_rows"]) for row in rows),
+        "missing_heavy_rows": sum(int(row["missing_heavy_rows"]) for row in rows),
+        "invalid_heavy_rows": sum(int(row["invalid_heavy_rows"]) for row in rows),
+        "rows_with_light": sum(int(row["with_light"]) for row in rows),
+        "rows_with_antigen_sequence": sum(int(row["with_antigen"]) for row in rows),
+        "rows_with_cdrh3": sum(int(row["with_cdrh3"]) for row in rows),
+        "invalid_light_rows": sum(int(row["invalid_light"]) for row in rows),
+        "invalid_antigen_rows": sum(int(row["invalid_antigen"]) for row in rows),
+        "invalid_cdrh3_rows": sum(int(row["invalid_cdrh3"]) for row in rows),
         "files_with_light": sum(int(row["with_light"]) > 0 for row in rows),
         "files_with_antigen_sequence": sum(int(row["with_antigen"]) > 0 for row in rows),
         "files_with_cdrh3": sum(int(row["with_cdrh3"]) > 0 for row in rows),
@@ -122,4 +221,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

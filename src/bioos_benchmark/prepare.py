@@ -13,6 +13,7 @@ from .data import (
     source_group,
     stable_record_id,
 )
+from .curation import label_is_valid, load_registry
 
 
 FIELDS = [
@@ -40,9 +41,11 @@ def prepare(
     max_rows_per_file: int | None,
     seed: int,
     overrides_path: Path | None = None,
+    registry_path: Path | None = None,
 ) -> dict[str, object]:
-    sequence_root = data_root / "初赛-序列数据"
-    csv_files = sorted(sequence_root.rglob("*.csv"))
+    # Recursive discovery avoids depending on a locale-sensitive directory
+    # name; files without supported antibody/label fields are skipped below.
+    csv_files = sorted(data_root.rglob("*.csv"))
     output.parent.mkdir(parents=True, exist_ok=True)
     counts: Counter[str] = Counter()
     skipped: list[str] = []
@@ -50,13 +53,26 @@ def prepare(
     duplicate_count = 0
     seen_record_ids: set[str] = set()
     overrides = load_overrides(overrides_path)
+    registry = load_registry(registry_path) if registry_path else {}
     with output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=FIELDS)
         writer.writeheader()
         for file_index, path in enumerate(csv_files):
             source = path.relative_to(data_root).as_posix()
+            entry = registry.get(source)
+            if registry and (entry is None or entry["supervised_use"] != "yes"):
+                skipped.append(source)
+                continue
+            direction = overrides.get(source)
+            if direction not in {-1, 1} and entry is not None:
+                direction = int(entry["direction"])
+            record_stream = iter_csv_records(path, data_root, direction)
+            if entry is not None:
+                record_stream = (
+                    record for record in record_stream if label_is_valid(record.raw_label, entry)
+                )
             records = reservoir_sample(
-                iter_csv_records(path, data_root, overrides.get(source)),
+                record_stream,
                 max_rows_per_file,
                 seed + file_index,
             )
@@ -98,6 +114,8 @@ def prepare(
         "seed": seed,
         "direction_overrides": str(overrides_path) if overrides_path else None,
         "override_count": len(overrides),
+        "label_registry": str(registry_path) if registry_path else None,
+        "registry_count": len(registry),
         "counts_by_source": dict(counts),
         "label_definition": "source-wise percentile; 1 is better",
     }
@@ -113,6 +131,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-rows-per-file", type=int, default=5000)
     parser.add_argument("--seed", type=int, default=20260722)
     parser.add_argument("--direction-overrides", type=Path)
+    parser.add_argument("--label-registry", type=Path)
     return parser
 
 
@@ -124,6 +143,7 @@ def main() -> None:
         args.max_rows_per_file,
         args.seed,
         args.direction_overrides,
+        args.label_registry,
     )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 
