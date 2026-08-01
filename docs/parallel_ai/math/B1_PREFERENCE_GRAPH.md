@@ -1,7 +1,9 @@
 # B1：偏好关系与标签质量模块
 
 > 负责人：数学同学  
-> 状态：模块设计完成，代码待实现  
+> 状态：已实现并验证  
+> 实现位置：`src/bioos_benchmark/ranking/preferences.py`  
+> 测试位置：`tests/test_math_preferences.py`  
 > 目标：把异质实验标签转换成可信的相对大小关系
 
 ## 模块简介
@@ -52,7 +54,7 @@ paper_group + target_id + assay_family + assay_format
 
 ## Python 接口
 
-计划文件：`src/bioos_benchmark/ranking/preferences.py`
+实现文件：`src/bioos_benchmark/ranking/preferences.py`
 
 ```python
 from dataclasses import dataclass
@@ -67,17 +69,21 @@ class PreferencePair:
     reason: str
 
 def build_preference_pairs(
-    records: list["RankingRecord"],
+    records: list[dict[str, object]],
     *,
     min_gap: float = 0.0,
     max_pairs_per_group: int = 100_000,
+    max_pairs_total: int = 1_000_000,
     seed: int = 42,
+    group_fields: list[str] | None = None,
 ) -> list[PreferencePair]:
     """构造可复现、质量加权的 pair。"""
 
 def validate_preference_pairs(
     pairs: list[PreferencePair],
-    records: list["RankingRecord"],
+    records: list[dict[str, object]],
+    *,
+    group_fields: list[str] | None = None,
 ) -> dict[str, object]:
     """检查方向、跨 split、并列、截断和重复冲突。"""
 ```
@@ -90,6 +96,7 @@ bioos-build-pairs \
   --split train \
   --output data/processed/pairs_train.csv \
   --max-pairs-per-group 100000 \
+  --max-pairs-total 1000000 \
   --seed 42
 ```
 
@@ -107,10 +114,26 @@ left_record_id,right_record_id,preference,pair_weight,comparison_group,reason
 - 每个样本限制最大 pair 数；
 - 小来源适当过采样；
 - 极大来源限制上限；
+- 全部来源合计默认最多 1,000,000 个 pair；
 - 固定随机种子；
 - 保存每类 pair 的数量报告。
 
-## 验收标准
+## 当前实现的字段兼容
+
+标签按以下优先级读取：
+
+```text
+canonical_label
+→ within_group_rank
+→ score
+→ raw_label × direction
+```
+
+比较组优先使用显式 `comparison_group`。没有该字段时，自动使用现有数据中的 `source_file、antigen_id`，并兼容未来的 `paper_group、target_id、assay_family、assay_format`。
+
+缺少 `label_quality、is_censored、replicate_conflict` 时分别采用安全默认值 `1、False、0`，因此当前 `benchmark_with_split.csv` 可以直接调用。
+
+## 验收结果
 
 - pair 两端一定处于同一 split；
 - pair 不跨不兼容 assay；
@@ -119,3 +142,39 @@ left_record_id,right_record_id,preference,pair_weight,comparison_group,reason
 - 交换左右时 preference 符号相反；
 - 标签打乱后模型验证 Spearman 接近 0；
 - 输出哈希和统计摘要可复现。
+
+实际测试：
+
+```bash
+$env:PYTHONPATH="src"
+python -m pytest -q tests/test_math_preferences.py
+```
+
+```text
+5 passed in 0.06s
+```
+
+已覆盖：
+
+- 固定种子下结果可复现；
+- 并列标签不生成 pair；
+- 双截断样本不生成 pair；
+- 跨 split 不生成 pair；
+- `raw_label × direction` 回退方向正确；
+- 全局 pair 上限在来源之间均衡分配；
+- 命令行能够写出 pair CSV 和 summary JSON。
+
+## 输出文件
+
+```text
+pairs.csv
+pairs.summary.json
+```
+
+summary 包含 pair 数量、比较组数量、权重范围、按组计数、按降权原因计数和校验错误。
+
+## 变更记录
+
+| 日期 | 版本 | 修改 |
+|---|---|---|
+| 2026-07-26 | v0.1 | 实现偏好 pair、质量权重、校验、CLI 和测试 |

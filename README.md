@@ -1,138 +1,131 @@
-# Bio-OS 数据处理复现代码
+# 第四届 Bio-OS 抗体设计基准：可复现起步方案
 
-本交付物只负责数据处理，不包含模型训练和抗体生成。
+本项目把赛事提供的异构公开数据整理为统一的抗体序列基准，并提供一条可以在普通电脑上冒烟测试、在云端扩展训练的完整流程：
 
-## 功能
-
-1. `audit`：扫描全部CSV，输出字段、行数、可用记录数、标签列、方向猜测及序列完整度；
-2. `prepare`：统一字段、清洗氨基酸序列、统一标签方向、来源内百分位标准化；
-3. `split`：按整篇论文数据组进行确定性的训练/验证/测试拆分；
-4. `validate`：检查字段、氨基酸、分数范围、重复ID和跨集合泄漏；
-5. 所有步骤只使用Python标准库，不需要安装PyTorch、Pandas或Scikit-learn。
-
-## 环境
-
-- Python 3.10或更高版本；
-- Windows、Linux均可；
-- 原始下载目录保持只读；
-- 建议为处理结果准备至少10 GB空间；本流程不要求解压INDI2或结构包。
-
-## 一次运行全部步骤
-
-### Windows PowerShell
-
-```powershell
-$env:PYTHONPATH = "src"
-
-python -m bioos_benchmark.audit `
-  --data-root "$HOME\Downloads\第四届Bio-OS开源大赛数据" `
-  --output data\processed\audit.csv `
-  --hash-inputs
-
-python -m bioos_benchmark.prepare `
-  --data-root "$HOME\Downloads\第四届Bio-OS开源大赛数据" `
-  --output data\processed\benchmark.csv `
-  --max-rows-per-file 5000 `
-  --direction-overrides configs\direction_overrides.csv
-
-python -m bioos_benchmark.split `
-  --input data\processed\benchmark.csv `
-  --output data\processed\benchmark_with_split.csv
-
-python -m bioos_benchmark.validate `
-  --input data\processed\benchmark_with_split.csv `
-  --report data\processed\validation_report.json
+```text
+原始CSV → 字段/方向统一 → 来源内百分位标签 → 来源级训练/测试拆分
+       → 序列基线训练 → 多维评价 → CDR-H3候选生成与排序
 ```
 
-### Linux
+> 重要边界：本仓库的候选生成器是用于验证工程流程的“局部突变基线”，不是经过实验验证的中和抗体设计系统。最终参赛版应接入 IgLM、IgGM、dyMEAN 或 RFantibody，并使用结构模型和实验数据进一步验证。
+
+## 1. 数据认识
+
+赛事下载目录中目前包含：
+
+- 序列数据：83 个 CSV、约 460 万行，另有 21 篇配套论文；
+- 纳米抗体数据：ANDD 索引 30,333 条，INDI2 压缩分卷约 22.8 GB；
+- 结构数据：SAbDab 摘要和 31,550 个 PDB，压缩包约 7.3 GB。
+
+不同来源的 `fitness` 不能直接比较：`-log(KD)` 越大越好，而原始 `KD/IC50/EC50` 越小越好。本项目先按字段判断方向，再在每个来源文件内部转成 0～1 的百分位分数。
+
+## 2. 云端环境安装
+
+推荐 Ubuntu 22.04、Python 3.10。基础模型不要求 GPU：
 
 ```bash
-export PYTHONPATH=src
+git clone <your-repository-url>
+cd ai-de-novo-design-1-benchmark
+python -m venv .venv
+source .venv/bin/activate
+pip install -e ".[dev]"
+```
 
-python -m bioos_benchmark.audit \
-  --data-root /data/第四届Bio-OS开源大赛数据 \
-  --output data/processed/audit.csv \
-  --hash-inputs
+大型生成模型和结构模型应分别建立独立环境，不要与本基线混装。
 
+## 3. 数据预处理
+
+Windows PowerShell 示例：
+
+```powershell
+python -m bioos_benchmark.prepare `
+  --data-root "$HOME\Downloads\第四届Bio-OS开源大赛数据" `
+  --output data/processed/benchmark.csv `
+  --max-rows-per-file 5000
+```
+
+Linux 云端示例：
+
+```bash
 python -m bioos_benchmark.prepare \
   --data-root /data/第四届Bio-OS开源大赛数据 \
   --output data/processed/benchmark.csv \
-  --max-rows-per-file 5000 \
-  --direction-overrides configs/direction_overrides.csv
-
-python -m bioos_benchmark.split \
-  --input data/processed/benchmark.csv \
-  --output data/processed/benchmark_with_split.csv
-
-python -m bioos_benchmark.validate \
-  --input data/processed/benchmark_with_split.csv \
-  --report data/processed/validation_report.json
+  --max-rows-per-file 50000
 ```
 
-## 输出文件
+参数说明：
+
+- `--max-rows-per-file 5000`：每个来源做确定性的蓄水池采样，避免超大数据集淹没小型实验数据；
+- 设置为 `0`：使用所有可解析记录；
+- 输出同时生成 `benchmark.summary.json`，记录来源、数量和跳过文件。
+
+## 4. 训练与评价
+
+```bash
+python -m bioos_benchmark.train \
+  --input data/processed/benchmark.csv \
+  --artifact-dir artifacts/baseline
+```
+
+模型使用抗体重链、轻链和可用的抗原序列字符 k-mer，加上长度、疏水性、电荷和半胱氨酸等简单特征。测试集按完整论文数据组（编号1～22）留出，避免同一论文不同CSV中的重复候选或近似突变体同时进入训练和测试。
+
+主要指标：
+
+- Spearman：排序是否正确，作为主指标；
+- Pearson：线性相关程度；
+- RMSE、MAE：预测误差；
+- Top-10% enrichment：预测前 10% 中富集了多少真正优良序列；
+- macro-source Spearman：每个来源等权，避免大数据集控制总分。
+
+输出：
 
 ```text
-data/processed/
-├── audit.csv
-├── audit.summary.json
-├── benchmark.csv
-├── benchmark.summary.json
-├── benchmark_with_split.csv
-├── benchmark_with_split.split_manifest.json
-└── validation_report.json
+artifacts/baseline/model.joblib
+artifacts/baseline/metrics.json
+artifacts/baseline/predictions.csv
 ```
 
-`benchmark.csv`字段：
+## 5. 生成和排序候选
 
-| 字段 | 说明 |
-|---|---|
-| record_id | 内容生成的稳定SHA-256短ID |
-| source_group | 编号1～22的论文数据组 |
-| source_file | 原始相对路径 |
-| antigen_id | 抗原名称；缺失时使用文件名 |
-| antigen_seq | 抗原序列，可为空 |
-| heavy/light | 清洗后的重链/轻链 |
-| cdrh3 | 原文件明确提供时保留 |
-| raw_label | 原始数值标签 |
-| direction | `1`为原值越大越好，`-1`为越小越好 |
-| score | 来源文件内部0～1百分位，越大越好 |
-| split | 仅拆分文件包含，取train/validation/test |
-
-## 人工方向审核
-
-自动方向只依据列名，是初步规则。阅读对应论文后，在`configs/direction_overrides.csv`加入：
-
-```csv
-source_file,direction,verified_by,notes
-初赛-序列数据/示例/example.csv,-1,论文页码,原始KD越小越好
+```bash
+python -m bioos_benchmark.design \
+  --model artifacts/baseline/model.joblib \
+  --target examples/target.json \
+  --output artifacts/candidates.csv \
+  --count 1000 \
+  --max-mutations 3
 ```
 
-程序以人工覆盖值为准。正式比赛前应把所有进入训练的文件都审核一遍。
+输入 JSON 必须包含抗原序列、重链、轻链，以及重链中精确出现的 `cdrh3`。程序会生成局部变体、预测分数，并对潜在糖基化位点、过度疏水和异常半胱氨酸进行简单惩罚。
 
-## 采样
+## 6. 如何升级成参赛模型
 
-`--max-rows-per-file 5000`表示每个CSV最多保留5000条。程序使用固定种子的蓄水池采样，扫描一遍文件并保证每行被选中的概率相同。设为`0`表示保留所有可用记录。
+第一轮先保留当前预处理、拆分和评价框架，只替换模型：
 
-## AI 模块双路线并行开发
+1. 用抗体语言模型（BALM、IgBert/IgT5等）替代字符 k-mer；
+2. 用抗原编码器加入抗原序列或表位表示；
+3. 用 pairwise ranking loss 学习同一靶点内的相对优劣；
+4. 用 IgLM 产生大规模 CDR 候选；
+5. 用 AntiFold 检查序列—结构一致性；
+6. 用 IgGM/dyMEAN/RFantibody评估抗原特异性和复合物结构；
+7. 最后做可开发性、多样性和结构置信度的 Pareto 筛选。
 
-组内计算机同学和数学同学的两条并行模型路线、公共数据接口、六个模块说明和模块文档模板位于：
+详细里程碑见 `PLAN.md`，技术设计见 `docs/ALGORITHM_DESIGN.md`，训练说明见 `docs/TRAINING.md`。
+
+## 7. 两位同学并行开发 AI 模块
+
+计算机同学与数学同学的并行方案、公共数据接口、六个模块说明和模块文档模板，统一放在：
 
 ```text
 docs/parallel_ai/README.md
 ```
 
-- 计算机路线：冻结蛋白语言模型表征、三路深度排序器、训练与推理；
-- 数学路线：质量加权偏好图、可解释排序模型、严格评价与集成。
+两条路线分别独立输出 `record_id + score`，最后再做严格评价和百分位排名集成。开始编码前，两位同学应先共同确认 `docs/parallel_ai/SHARED_INTERFACES.md`。
 
-两条路线统一输出 `record_id + score`，可以独立评价，也可以在最后进行百分位排名集成。开始实现前，两位同学应先共同确认 `docs/parallel_ai/SHARED_INTERFACES.md`。
-
-## 测试
-
-数据处理代码本身只依赖标准库。测试工具可单独安装：
+## 8. 测试
 
 ```bash
-python -m pip install pytest
-pytest -q tests/test_data_pipeline.py
+pytest -q
 ```
 
-正式复现时应记录Python版本、原始文件SHA-256、方向覆盖表、随机种子和所有输出的哈希值。
+所有随机过程都提供固定种子；原始数据只读，处理结果写入 `data/processed`；模型、指标和候选写入 `artifacts`。

@@ -3,18 +3,37 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "bioos-data-pipeline"
-version = "1.0.0"
-description = "Reproducible data processing for the 4th Bio-OS antibody dataset"
+name = "bioos-antibody-benchmark"
+version = "0.1.0"
+description = "Reproducible baseline for the 4th Bio-OS antibody design benchmark data"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+  "joblib>=1.3,<2",
+  "numpy>=1.26,<3",
+  "scikit-learn>=1.4,<2",
+  "scipy>=1.11,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+numbering = ["anarcii==2.0.5"]
 
 [project.scripts]
-bioos-audit = "bioos_benchmark.audit:main"
 bioos-prepare = "bioos_benchmark.prepare:main"
+bioos-audit = "bioos_benchmark.audit:main"
+bioos-curate = "bioos_benchmark.curation:main"
+bioos-apply-splits = "bioos_benchmark.apply_splits:main"
 bioos-split = "bioos_benchmark.split:main"
 bioos-validate = "bioos_benchmark.validate:main"
+bioos-train = "bioos_benchmark.train:main"
+bioos-design = "bioos_benchmark.design:main"
+bioos-build-pairs = "bioos_benchmark.ranking.preferences:main"
+bioos-train-math = "bioos_benchmark.ranking.math_ranker:main_train"
+bioos-predict-math = "bioos_benchmark.ranking.math_ranker:main_predict"
+bioos-evaluate = "bioos_benchmark.ranking.evaluation:main"
+bioos-ensemble = "bioos_benchmark.ranking.ensemble:main_ensemble"
+bioos-submit = "bioos_benchmark.ranking.ensemble:main_submission"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -22,9 +41,5 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[project.optional-dependencies]
-test = ["pytest>=8,<9"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

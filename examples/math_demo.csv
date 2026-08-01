@@ -1,0 +1,13 @@
+record_id,heavy,light,antigen_seq,source_group,source_file,antigen_id,score,split
+train_01,ACDE,ACDE,ACDEFGHIK,train_source,train/demo.csv,target_demo,0.05,train
+train_02,ACDEFG,ACDE,ACDEFGHIK,train_source,train/demo.csv,target_demo,0.20,train
+train_03,ACDEFGHIK,,ACDEFGHIK,train_source,train/demo.csv,target_demo,0.35,train
+train_04,ACDEFGHIKLM,ACDE,ACDEFGHIK,train_source,train/demo.csv,target_demo,0.55,train
+train_05,ACDEFGHIKLMNPQ,,ACDEFGHIK,train_source,train/demo.csv,target_demo,0.75,train
+train_06,ACDEFGHIKLMNPQRST,ACDE,ACDEFGHIK,train_source,train/demo.csv,target_demo,0.95,train
+validation_01,ACDEF,,ACDEFGHIK,validation_source,validation/demo.csv,target_demo,0.10,validation
+validation_02,ACDEFGHIKL,ACDE,ACDEFGHIK,validation_source,validation/demo.csv,target_demo,0.50,validation
+validation_03,ACDEFGHIKLMNPQR,,ACDEFGHIK,validation_source,validation/demo.csv,target_demo,0.90,validation
+test_01,ACDEFG,ACDE,ACDEFGHIK,test_source,test/demo.csv,target_demo,,test
+test_02,ACDEFGHIKLM,,ACDEFGHIK,test_source,test/demo.csv,target_demo,,test
+test_03,ACDEFGHIKLMNPQRSTV,ACDE,ACDEFGHIK,test_source,test/demo.csv,target_demo,,test
