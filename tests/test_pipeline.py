@@ -4,7 +4,7 @@ import csv
 from pathlib import Path
 
 from bioos_benchmark.data import AA20, RawRecord, normalize_sequence, percentile_scores
-from bioos_benchmark.design import generate_candidates, liabilities
+from bioos_benchmark.design import generate_candidates, liabilities, mutation_notation
 from bioos_benchmark.train import load_rows, split_rows
 
 
@@ -55,4 +55,16 @@ def test_candidate_generation() -> None:
     assert len(rows) == 10
     assert len({x["cdrh3"] for x in rows}) == 10
     assert all(set(x["heavy"]) <= AA20 for x in rows)
+    assert all(1 <= x["mutation_count"] <= 2 for x in rows)
     assert liabilities(rows[0]["heavy"])["liability_penalty"] >= 0
+
+
+def test_candidate_constraints_protect_cysteine() -> None:
+    target = {
+        "heavy": "AAACDEFBBB".replace("B", "A"), "light": "ACDEFGHIK",
+        "cdrh3": "CDEF", "mutable_positions": [0, 1], "protect_cysteine": True,
+    }
+    rows = generate_candidates(target, count=5, max_mutations=1, seed=3)
+    assert all(row["cdrh3"][0] == "C" for row in rows)
+    assert all(row["mutations"].startswith("D2") for row in rows)
+    assert mutation_notation("CDEF", "CAEF") == ("D2A", 1)
