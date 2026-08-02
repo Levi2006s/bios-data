@@ -389,7 +389,9 @@ def main() -> None:
         json.dumps(report, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    # ASCII escaping keeps the CLI reliable on Windows GBK consoles while the
+    # saved JSON report remains human-readable UTF-8.
+    print(json.dumps(report, ensure_ascii=True, indent=2))
 
 
 if __name__ == "__main__":
