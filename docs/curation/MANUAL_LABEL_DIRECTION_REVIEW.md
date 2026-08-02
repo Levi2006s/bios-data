@@ -1,5 +1,7 @@
 # 人工标签方向审核表
 
+> 2026-08-03：本文的逐文件信息已由修订版认证覆盖。当前建模应以 `configs/label_registry.csv`、`configs/label_certification_revision.csv` 和 `08_LABEL_CERTIFICATION_REVISION_2026-08-03.md` 为准。
+
 > 用途：请团队成员逐文件审核标签的含义、单位和方向。此表只处理数据定义，不涉及模型训练。
 
 ## 一、审核结论摘要
