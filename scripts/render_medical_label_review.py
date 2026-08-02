@@ -13,6 +13,8 @@ def esc(value: object) -> str:
 
 
 def plain_metric(row: dict[str, str]) -> str:
+    if row.get("endpoint_definition"):
+        return row["endpoint_definition"]
     metric = row["metric"]
     if metric == "KD":
         return "抗体与抗原分开的难易程度（KD）"
@@ -36,6 +38,8 @@ def plain_metric(row: dict[str, str]) -> str:
 
 
 def plain_direction(row: dict[str, str]) -> str:
+    if row.get("raw_numeric_direction"):
+        return row["raw_numeric_direction"]
     direction = row["direction"]
     metric = row["metric"]
     if direction == "0":
@@ -48,6 +52,8 @@ def plain_direction(row: dict[str, str]) -> str:
 
 
 def medical_reason(row: dict[str, str]) -> str:
+    if row.get("certification_notes"):
+        return row["certification_notes"]
     metric = row["metric"]
     if metric == "KD":
         return "KD 越小，抗体越不容易从抗原上脱离，通常表示结合越强。"
@@ -67,6 +73,9 @@ def medical_reason(row: dict[str, str]) -> str:
 
 
 def plain_tier(row: dict[str, str]) -> str:
+    if row.get("affinity_grade"):
+        head = row.get("training_head", "")
+        return f"原终点 {row.get('endpoint_grade', '')}；亲和力监督 {row['affinity_grade']}；任务：{head}"
     return {
         "Gold": "高可信：主要来自明确的实验测量",
         "Silver": "中等可信：实验来源明确，但指标或单位不完全统一",
@@ -86,7 +95,7 @@ def render(registry_path: Path, output_path: Path) -> None:
     lines = [
         "# 人工标签方向审核表（医学生易读版）",
         "",
-        "> 这份表回答一个核心问题：每个数据文件里的数字，到底是越大越好，还是越小越好？",
+        "> 这份表同时回答：数字本身怎么读、开发时偏好什么方向，以及它能不能作为 KD 亲和力标签。",
         "",
         "## 一、先理解四个常见概念",
         "",
@@ -102,9 +111,9 @@ def render(registry_path: Path, output_path: Path) -> None:
         "",
         "有些作者会计算 `-log10(KD)`。因为前面加了负号，方向发生翻转：**这种分数越大，代表原始 KD 越小，也就是越好。**",
         "",
-        "### 4. 实验标签和预测标签不能等同",
+        "### 4. 实验结果可信，不等于能代表 KD",
         "",
-        "实验标签来自 SPR、细胞实验、酵母展示或中和实验；预测标签是另一个模型算出来的结果。预测标签可以帮助扩大数据量，但不能当成真正的实验结论。",
+        "例如 ADCC EC50 可以是真实而重要的功能实验，但它还受 Fc 受体、糖基化和效应细胞影响，所以不能直接当成 KD。AlphaSeq 则是实验衍生、模型校准的亲和力估计，也不能简单写成纯计算伪标签。",
         "",
         "## 二、总体结论",
         "",
@@ -115,10 +124,10 @@ def render(registry_path: Path, output_path: Path) -> None:
         "",
         "## 三、最需要注意的六组数据",
         "",
-        "- **来源 4（AbRank）**：虽然字段叫 `fitness`，实际保存的是 KD/IC50 的对数，仍然应该越小越好。",
+        "- **来源 4（AbRank）**：混有 KD、IC50、escape 和排序值，没有统一方向；必须先按 measurement type 拆分。",
         "- **来源 9**：连续 KD 文件的列名标成 M，但论文和数值大小更符合 nM；方向是越小越好。",
-        "- **来源 3、6**：标签是模型预测结果，不是湿实验结果，列为弱标签。",
-        "- **来源 12**：标签是相对结合信号，不是 KD，只适合同一实验内比较。",
+        "- **来源 3、6**：AlphaSeq 是实验衍生、模型校准的估计，亲和力等级 B/C，不能让其大样本压过 SPR。",
+        "- **来源 12**：目标抗原信号与 OVA 风险必须分开；OVA 信号越大代表非特异结合风险越高，开发时越小越好。",
         "- **来源 17**：有 3 条 KD 为零或明显超出合理范围，已经隔离。",
         "- **来源 22**：没有可直接使用的数值标签，不进入监督训练。",
         "",
@@ -134,7 +143,7 @@ def render(registry_path: Path, output_path: Path) -> None:
             "",
             f"对应论文：{esc(first['paper_title'])}（{esc(first['publication_year'])}）",
             "",
-            "| 文件 | 这个数字表示什么 | 哪个方向更好 | 为什么 | 可信程度 | 你的审核 |",
+            "| 文件 | 这个数字表示什么 | 原始数值怎么读 | 开发时偏好 | 可信度与任务 | 处理意见 |",
             "|---|---|---|---|---|---|",
         ])
         for row in group_rows:
@@ -143,9 +152,9 @@ def render(registry_path: Path, output_path: Path) -> None:
                     f"`{esc(Path(row['source_file']).name)}`",
                     esc(plain_metric(row)),
                     esc(plain_direction(row)),
-                    esc(medical_reason(row)),
+                    esc(row.get("development_value_direction") or plain_direction(row)),
                     esc(plain_tier(row)),
-                    "□ 同意　□ 修改：",
+                    esc(medical_reason(row) or "按认证等级和可比范围使用"),
                 ]) + " |"
             )
         lines.append("")
@@ -155,7 +164,7 @@ def render(registry_path: Path, output_path: Path) -> None:
         "",
         "如果你认为某一行有问题，只需要告诉我：来源编号、文件名、你认为正确的方向，以及依据。例如：",
         "",
-        "> 来源 4，AbRank_dataset.csv，我认为应为越小越好，因为 fitness 是 log10(KD)。",
+        "> 来源 4，AbRank_dataset.csv，我认为某一种 measurement type 应按越小越好处理，依据是……",
         "",
         "- 审核人：",
         "- 审核日期：",
