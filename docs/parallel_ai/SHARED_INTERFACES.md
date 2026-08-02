@@ -20,11 +20,16 @@
 | `canonical_label` | float | 已统一方向的监督值，越大越好 |
 | `within_group_rank` | float | 同实验上下文内的 0～1 百分位 |
 | `label_quality` | float | 0～1 标签可信度 |
+| `affinity_grade` | string | 人工认证的 A～D/NA 亲和力监督等级 |
+| `training_head` | string | `affinity_kd`、`neutralization_ic50` 等独立任务头 |
+| `certification_version` | string | 标签认证规则版本，便于追踪结果 |
 | `is_censored` | int | 是否为测量上/下限 |
 | `split` | string | `train`、`validation` 或 `test` |
 | `split_group` | string | 防泄漏分组标识 |
 
 模型不得依赖 CSV 行号。输出和输入必须通过 `record_id` 对齐。
+
+主亲和力模型只读取 `training_head=affinity_kd` 且 `primary_affinity_weight>0` 的记录。IC50、EC50、二分类、OVA 风险、ADCC 和未拆分的混合终点不能仅翻转正负号后并入同一回归头。
 
 ## 2. Python 数据对象
 
