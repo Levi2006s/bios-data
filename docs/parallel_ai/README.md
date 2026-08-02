@@ -65,6 +65,11 @@ PLM embedding      偏好 pair / 质量权重
 
 完成训练、断点保存、批量打分、生成连续 Rank，以及统一的预测文件。
 
+计算机同学从当前进度继续执行时，请先阅读：
+
+- [计算机学生下一阶段交接计划](computer/NEXT_STEPS_HANDOFF_2026-08-01.md)
+- [数学路线第一阶段验收报告](math/PHASE1_ACCEPTANCE_REPORT_2026-08-01.md)
+
 ## 5. 路线 B：数学同学
 
 ### B1. 偏好关系与质量权重
