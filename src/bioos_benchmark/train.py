@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import random
 from collections import defaultdict
 from pathlib import Path
 
@@ -15,9 +16,31 @@ from .features import AntibodyFeaturizer
 from .metrics import regression_metrics
 
 
-def load_rows(path: Path) -> list[dict[str, str]]:
+def load_rows(
+    path: Path, max_rows_per_source: int = 0, seed: int = 42,
+    include_tiers: set[str] | None = None,
+) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8", newline="") as handle:
-        return list(csv.DictReader(handle))
+        if max_rows_per_source <= 0:
+            rows = list(csv.DictReader(handle))
+            return [row for row in rows if not include_tiers or row.get("tier") in include_tiers]
+        samples: dict[str, list[dict[str, str]]] = defaultdict(list)
+        seen: defaultdict[str, int] = defaultdict(int)
+        rngs: dict[str, random.Random] = {}
+        for row in csv.DictReader(handle):
+            if include_tiers and row.get("tier") not in include_tiers:
+                continue
+            source = row["source_file"]
+            seen[source] += 1
+            sample = samples[source]
+            if len(sample) < max_rows_per_source:
+                sample.append(row)
+                continue
+            rng = rngs.setdefault(source, random.Random(seed + stable_bucket(source, 2**31)))
+            replacement = rng.randrange(seen[source])
+            if replacement < max_rows_per_source:
+                sample[replacement] = row
+        return [row for source in sorted(samples) for row in samples[source]]
 
 
 def dataset_group(source_file: str) -> str:
@@ -26,7 +49,17 @@ def dataset_group(source_file: str) -> str:
     return "/".join(parts[:2]) if len(parts) >= 2 else source_file
 
 
-def split_rows(rows: list[dict[str, str]], test_percent: int) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+def split_rows(
+    rows: list[dict[str, str]], test_percent: int, split_column: str | None = None,
+    train_split: str = "train", evaluation_split: str = "test",
+) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    if split_column:
+        if rows and split_column not in rows[0]:
+            raise ValueError(f"Split column not found: {split_column}")
+        return (
+            [row for row in rows if row.get(split_column) == train_split],
+            [row for row in rows if row.get(split_column) == evaluation_split],
+        )
     groups = sorted({dataset_group(row["source_file"]) for row in rows})
     test_groups = {group for group in groups if stable_bucket(group) < test_percent}
     if not test_groups and groups:
@@ -38,9 +71,16 @@ def split_rows(rows: list[dict[str, str]], test_percent: int) -> tuple[list[dict
     return train, test
 
 
-def train_model(input_path: Path, artifact_dir: Path, seed: int, test_percent: int) -> dict[str, object]:
-    rows = load_rows(input_path)
-    train_rows, test_rows = split_rows(rows, test_percent)
+def train_model(
+    input_path: Path, artifact_dir: Path, seed: int, test_percent: int,
+    split_column: str | None = None, train_split: str = "train",
+    evaluation_split: str = "test", max_rows_per_source: int = 0,
+    include_tiers: set[str] | None = None,
+) -> dict[str, object]:
+    rows = load_rows(input_path, max_rows_per_source, seed, include_tiers)
+    train_rows, test_rows = split_rows(
+        rows, test_percent, split_column, train_split, evaluation_split
+    )
     if not train_rows or not test_rows:
         raise ValueError("Need at least two source files to create a source-held-out split.")
     featurizer = AntibodyFeaturizer()
@@ -69,8 +109,16 @@ def train_model(input_path: Path, artifact_dir: Path, seed: int, test_percent: i
         idx = np.asarray(positions)
         by_source[source] = regression_metrics(y_test[idx], prediction[idx])
     valid_spearman = [x["spearman"] for x in by_source.values() if np.isfinite(x["spearman"])]
+    stable_spearman = [
+        x["spearman"] for x in by_source.values()
+        if x["n"] >= 20 and np.isfinite(x["spearman"])
+    ]
     metrics: dict[str, object] = {
-        "split": "literature-dataset-group-held-out",
+        "split": split_column or "literature-dataset-group-held-out",
+        "train_split": train_split,
+        "evaluation_split": evaluation_split,
+        "max_rows_per_source": max_rows_per_source,
+        "include_tiers": sorted(include_tiers) if include_tiers else None,
         "seed": seed,
         "train_records": len(train_rows),
         "test_records": len(test_rows),
@@ -80,6 +128,8 @@ def train_model(input_path: Path, artifact_dir: Path, seed: int, test_percent: i
         "test_dataset_groups": sorted({dataset_group(x["source_file"]) for x in test_rows}),
         "overall": overall,
         "macro_source_spearman": float(np.mean(valid_spearman)) if valid_spearman else None,
+        "macro_source_spearman_min_n_20": float(np.mean(stable_spearman)) if stable_spearman else None,
+        "macro_source_count_min_n_20": len(stable_spearman),
         "by_source": by_source,
     }
     artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -99,12 +149,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--artifact-dir", type=Path, default=Path("artifacts/baseline"))
     parser.add_argument("--seed", type=int, default=20260722)
     parser.add_argument("--test-percent", type=int, default=20)
+    parser.add_argument("--split-column")
+    parser.add_argument("--train-split", default="train")
+    parser.add_argument("--evaluation-split", default="test")
+    parser.add_argument("--max-rows-per-source", type=int, default=0)
+    parser.add_argument("--include-tiers", nargs="*")
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    print(json.dumps(train_model(args.input, args.artifact_dir, args.seed, args.test_percent), ensure_ascii=False, indent=2))
+    print(json.dumps(train_model(
+        args.input, args.artifact_dir, args.seed, args.test_percent,
+        args.split_column, args.train_split, args.evaluation_split,
+        args.max_rows_per_source,
+        set(args.include_tiers) if args.include_tiers else None,
+    ), ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

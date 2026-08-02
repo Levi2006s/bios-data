@@ -22,9 +22,11 @@ def _record_id(row: Mapping[str, object]) -> str:
     return str(row.get("record_id", "") or "").strip()
 
 
-def _read_rows(path: Path) -> list[dict[str, str]]:
+def _read_rows(path: Path, include_tiers: set[str] | None = None) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
+    if include_tiers:
+        rows = [row for row in rows if str(row.get("tier", "")).strip() in include_tiers]
     ids = [_record_id(row) for row in rows]
     if not rows or any(not item for item in ids):
         raise ValueError("Input must be a non-empty CSV with record_id.")
@@ -322,8 +324,9 @@ def train_math_ranker(
     seed: int = 42,
     alpha: float = 1e-5,
     max_iter: int = 2000,
+    include_tiers: set[str] | None = None,
 ) -> dict[str, object]:
-    rows = _read_rows(input_path)
+    rows = _read_rows(input_path, include_tiers)
     pairs = _read_pairs(pairs_path)
     train_rows = _split_rows(rows, train_split)
     validation_rows = _split_rows(rows, validation_split)
@@ -349,6 +352,7 @@ def train_math_ranker(
         "n_features": n_features,
         "alpha": alpha,
         "max_iter": max_iter,
+        "include_tiers": sorted(include_tiers) if include_tiers else None,
     }
     if validation_rows:
         validation_scores = ranker.predict_score(validation_rows)
@@ -394,6 +398,7 @@ def train_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--alpha", type=float, default=1e-5)
     parser.add_argument("--max-iter", type=int, default=2000)
+    parser.add_argument("--include-tiers", nargs="*")
     return parser
 
 
@@ -418,6 +423,7 @@ def main_train() -> None:
         seed=args.seed,
         alpha=args.alpha,
         max_iter=args.max_iter,
+        include_tiers=set(args.include_tiers) if args.include_tiers else None,
     )
     print(json.dumps(metrics, ensure_ascii=False, indent=2))
 

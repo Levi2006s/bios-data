@@ -325,11 +325,15 @@ def validate_preference_pairs(
     }
 
 
-def read_csv_rows(path: Path, split: str | None = None) -> list[dict[str, str]]:
+def read_csv_rows(
+    path: Path, split: str | None = None, include_tiers: set[str] | None = None,
+) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
     if split is not None:
         rows = [row for row in rows if _clean_text(row.get("split")) == split]
+    if include_tiers:
+        rows = [row for row in rows if _clean_text(row.get("tier")) in include_tiers]
     return rows
 
 
@@ -356,12 +360,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-pairs-total", type=int, default=1_000_000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--group-fields", nargs="*")
+    parser.add_argument("--include-tiers", nargs="*")
     return parser
 
 
 def main() -> None:
     args = build_parser().parse_args()
-    rows = read_csv_rows(args.input, args.split or None)
+    rows = read_csv_rows(
+        args.input, args.split or None,
+        set(args.include_tiers) if args.include_tiers else None,
+    )
     pairs = build_preference_pairs(
         rows,
         min_gap=args.min_gap,
@@ -383,6 +391,7 @@ def main() -> None:
             "max_pairs_per_group": args.max_pairs_per_group,
             "max_pairs_total": args.max_pairs_total,
             "seed": args.seed,
+            "include_tiers": sorted(args.include_tiers) if args.include_tiers else None,
         }
     )
     args.output.with_suffix(".summary.json").write_text(

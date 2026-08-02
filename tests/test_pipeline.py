@@ -5,7 +5,7 @@ from pathlib import Path
 
 from bioos_benchmark.data import AA20, RawRecord, normalize_sequence, percentile_scores
 from bioos_benchmark.design import generate_candidates, liabilities
-from bioos_benchmark.train import split_rows
+from bioos_benchmark.train import load_rows, split_rows
 
 
 def test_normalize_sequence() -> None:
@@ -26,6 +26,22 @@ def test_source_split_has_no_overlap() -> None:
     train, test = split_rows(rows, 20)
     assert train and test
     assert {x["source_file"] for x in train}.isdisjoint({x["source_file"] for x in test})
+
+
+def test_train_respects_explicit_split_and_source_cap(tmp_path: Path) -> None:
+    path = tmp_path / "rows.csv"
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=["source_file", "fold"])
+        writer.writeheader()
+        for source in ("a", "b"):
+            for index in range(10):
+                writer.writerow({"source_file": source, "fold": "train" if index < 5 else "test"})
+    rows = load_rows(path, max_rows_per_source=4, seed=7)
+    assert len(rows) == 8
+    train, test = split_rows(rows, 20, "fold", "train", "test")
+    assert train and test
+    assert all(row["fold"] == "train" for row in train)
+    assert all(row["fold"] == "test" for row in test)
 
 
 def test_candidate_generation() -> None:
