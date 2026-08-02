@@ -141,6 +141,45 @@ def _cluster_bootstrap_spearman(
     }
 
 
+def _cluster_bootstrap_top10(
+    truth: np.ndarray,
+    prediction: np.ndarray,
+    clusters: Sequence[str],
+    rounds: int,
+    seed: int,
+) -> dict[str, object]:
+    """Cluster bootstrap interval for the Top-10% enrichment statistic."""
+    if rounds <= 0:
+        return {"rounds_requested": rounds, "rounds_valid": 0, "low": None, "high": None}
+    cluster_positions: dict[str, list[int]] = defaultdict(list)
+    for index, cluster in enumerate(clusters):
+        cluster_positions[cluster or f"row_{index}"].append(index)
+    names = sorted(cluster_positions)
+    if len(names) < 2:
+        return {"rounds_requested": rounds, "rounds_valid": 0, "low": None, "high": None}
+    rng = np.random.default_rng(seed)
+    values: list[float] = []
+    for _ in range(rounds):
+        sampled = rng.choice(names, size=len(names), replace=True)
+        indices = [
+            position
+            for cluster in sampled
+            for position in cluster_positions[str(cluster)]
+        ]
+        value = regression_metrics(truth[indices], prediction[indices])["top10_enrichment"]
+        if math.isfinite(value):
+            values.append(value)
+    if not values:
+        return {"rounds_requested": rounds, "rounds_valid": 0, "low": None, "high": None}
+    return {
+        "rounds_requested": rounds,
+        "rounds_valid": len(values),
+        "low": float(np.quantile(values, 0.025)),
+        "median": float(np.quantile(values, 0.5)),
+        "high": float(np.quantile(values, 0.975)),
+    }
+
+
 def _regime_metrics(
     truth: np.ndarray,
     prediction: np.ndarray,
@@ -265,6 +304,9 @@ def evaluate_predictions(
         "bootstrap_spearman_95ci": _cluster_bootstrap_spearman(
             truth, prediction, split_groups, bootstrap_rounds, seed
         ),
+        "bootstrap_top10_enrichment_95ci": _cluster_bootstrap_top10(
+            truth, prediction, split_groups, bootstrap_rounds, seed + 1
+        ),
         "label_permutation_spearman": permutation_spearman,
         "model_selection_composite": composite,
         "seed": seed,
@@ -297,7 +339,7 @@ def main() -> None:
         json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False),
         encoding="utf-8",
     )
-    print(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False))
+    print(json.dumps(report, ensure_ascii=True, indent=2, allow_nan=False))
 
 
 if __name__ == "__main__":
