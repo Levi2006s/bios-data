@@ -24,8 +24,8 @@ source_file,direction
 初赛-序列数据/11/kothiwal2025htp_TIGIT_spr.csv,1
 初赛-序列数据/12/makowksi2022cooptimization_iso_ant.csv,1
 初赛-序列数据/12/makowski2022cooptimization_igg_ant.csv,1
-初赛-序列数据/12/makowski2022cooptimization_igg_ova.csv,1
-初赛-序列数据/12/makowski2022cooptimization_iso_ova.csv,1
+初赛-序列数据/12/makowski2022cooptimization_igg_ova.csv,-1
+初赛-序列数据/12/makowski2022cooptimization_iso_ova.csv,-1
 初赛-序列数据/13/phillips2021binding_cr6261_h1_kd.csv,1
 初赛-序列数据/13/phillips2021binding_cr6261_h9_kd.csv,1
 初赛-序列数据/13/phillips2021binding_cr9114_h1_kd.csv,1
@@ -58,7 +58,6 @@ source_file,direction
 初赛-序列数据/21/zimmerman2020antibody_4420_kd.csv,1
 初赛-序列数据/3/li2023machine_scFv-SARS-CoV-2_affinity1.csv,-1
 初赛-序列数据/3/li2023machine_scFv-SARS-CoV-2_affinity2.csv,-1
-初赛-序列数据/4/AbRank_dataset.csv,-1
 初赛-序列数据/5/adams2017measuring_4420-fluorescein_kd-flow.csv,-1
 初赛-序列数据/5/adams2017measuring_4420-fluorescein_kd-titeseq.csv,-1
 初赛-序列数据/6/engelhart2022dataset_scFv-SARS-CoV-2_affinity.csv,-1
