@@ -89,7 +89,7 @@ split
 - `split` 为 `train / validation / test`；
 - 相同实验来源使用相同 `source_file + antigen_id`。
 
-未来加入 `canonical_label、label_quality、is_censored、assay_family` 等字段后，代码会自动优先使用更严格的字段。
+当前新版注册表已经提供 `label_quality` 的来源权重、`affinity_grade`、`training_head` 和 `certification_version`。`bioos-prepare-math` 会自动保留 `primary_affinity_weight>0` 的主 KD 数据，并隔离 IC50、EC50、二分类、OVA 风险、ADCC 和未拆分 AbRank。未来加入 `canonical_label`、`is_censored` 等逐记录字段后，代码仍会优先使用更严格的字段。
 
 ## 4. 第一步：生成偏好 pair
 
