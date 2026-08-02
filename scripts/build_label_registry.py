@@ -49,7 +49,14 @@ FIELDS = [
     "metric", "unit", "stored_transform", "direction", "better_means",
     "label_origin", "tier", "supervised_use", "valid_min", "valid_max",
     "censor_policy", "evidence", "confidence", "review_status", "notes",
+    "document_filename", "filename_alias", "endpoint_definition",
+    "raw_numeric_direction", "development_value_direction",
+    "certification_label_source", "endpoint_grade", "affinity_grade",
+    "grade_weight", "training_head", "primary_affinity_weight",
+    "comparison_scope", "certification_notes", "certification_version",
 ]
+
+CERTIFICATION_FIELDS = FIELDS[20:]
 
 
 def group_number(source_group: str) -> str:
@@ -133,10 +140,69 @@ def classify(row: dict[str, str]) -> dict[str, str]:
     return base
 
 
-def build(audit_csv: Path, output: Path, overrides: Path) -> None:
+def load_certification(path: Path | None) -> dict[str, dict[str, str]]:
+    if path is None:
+        return {}
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    result = {row["source_file"].replace("\\", "/"): row for row in rows}
+    if len(result) != len(rows):
+        raise ValueError("certification CSV contains duplicate source_file entries")
+    return result
+
+
+def apply_certification(
+    registry: list[dict[str, str]],
+    certification: dict[str, dict[str, str]],
+) -> None:
+    if not certification:
+        return
+    registry_files = {row["source_file"] for row in registry}
+    if registry_files != set(certification):
+        raise ValueError(
+            "certification coverage mismatch: "
+            f"missing={sorted(registry_files - set(certification))}, "
+            f"extra={sorted(set(certification) - registry_files)}"
+        )
+    for row in registry:
+        reviewed = certification[row["source_file"]]
+        row.update({field: reviewed.get(field, "") for field in CERTIFICATION_FIELDS})
+        head = row["training_head"]
+        if head == "developability_ova_risk":
+            row.update(
+                metric="nonspecific_binding_signal",
+                direction="-1",
+                better_means="smaller OVA nonspecific-binding signal",
+            )
+        elif head == "mixed_endpoint_split_required":
+            row.update(
+                metric="mixed_endpoint_requires_split",
+                direction="0",
+                better_means="measurement_type_specific",
+                supervised_use="conditional",
+                censor_policy="split_by_measurement_type",
+            )
+        if group_number(row["source_group"]) in {"3", "6"}:
+            row.update(
+                label_origin="experimental_derived_model_calibrated",
+                tier="Silver",
+                evidence="AlphaSeq experimental measurements calibrated to log10(KD[nM])",
+            )
+        if "reviewed certification table" not in row["evidence"]:
+            row["evidence"] = row["evidence"].rstrip("; ") + "; reviewed certification table"
+
+
+def build(
+    audit_csv: Path,
+    output: Path,
+    overrides: Path,
+    certification_path: Path | None = None,
+) -> None:
     with audit_csv.open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
     registry = [classify(row) for row in rows]
+    certification = load_certification(certification_path)
+    apply_certification(registry, certification)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=FIELDS)
@@ -157,8 +223,13 @@ def main() -> None:
     parser.add_argument("--audit", type=Path, default=Path("data/processed/audit.csv"))
     parser.add_argument("--output", type=Path, default=Path("configs/label_registry.csv"))
     parser.add_argument("--overrides", type=Path, default=Path("configs/direction_overrides.csv"))
+    parser.add_argument(
+        "--certification",
+        type=Path,
+        default=Path("configs/label_certification_revision.csv"),
+    )
     args = parser.parse_args()
-    build(args.audit, args.output, args.overrides)
+    build(args.audit, args.output, args.overrides, args.certification)
 
 
 if __name__ == "__main__":
