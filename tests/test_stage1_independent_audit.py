@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from scripts.audit_stage1 import audit_delimited, infer_roles
 from scripts.build_stage1_label_registry import assay_from, registry_row
+from scripts.build_label_registry import classify
 from scripts.profile_stage1_labels import parse_number
 
 
@@ -65,6 +66,15 @@ class Stage1AuditTests(unittest.TestCase):
 
     def test_binary_is_auxiliary(self):
         self.assertEqual(assay_from("x_binary.csv", ["fitness"]), "binary_binding")
+
+    def test_main_registry_excludes_binary_from_ranking_supervision(self):
+        row = classify({
+            "source_file": "初赛-序列数据/18/example_binary.csv",
+            "source_group": "初赛-序列数据/18",
+            "label_column": "fitness",
+        })
+        self.assertEqual(row["tier"], "Auxiliary")
+        self.assertEqual(row["supervised_use"], "no")
 
     def test_censored_values_are_not_silently_numeric(self):
         self.assertEqual(parse_number("1.2e-9"), (1.2e-9, False))
