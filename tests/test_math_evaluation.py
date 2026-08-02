@@ -69,6 +69,9 @@ def test_evaluate_perfect_predictions_and_bootstrap(tmp_path: Path) -> None:
     assert report["global"]["spearman"] == pytest.approx(1.0)
     assert report["macro_source_spearman"] == pytest.approx(1.0)
     assert report["bootstrap_spearman_95ci"]["low"] == pytest.approx(1.0)
+    assert report["bootstrap_top10_enrichment_95ci"]["low"] is not None
+    assert report["global"]["top1_enrichment"] >= 1.0
+    assert report["global"]["top5_enrichment"] >= 1.0
     assert report["model_selection_composite"] is None
 
 
