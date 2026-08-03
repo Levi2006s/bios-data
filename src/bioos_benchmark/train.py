@@ -4,7 +4,7 @@ import argparse
 import csv
 import json
 import random
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import joblib
@@ -71,11 +71,22 @@ def split_rows(
     return train, test
 
 
+def source_balance_weights(
+    rows: list[dict[str, str]], power: float = 0.0,
+) -> np.ndarray:
+    """Give each source weight proportional to count**(-power), mean-normalized."""
+    if not 0 <= power <= 1:
+        raise ValueError("source weight power must be between 0 and 1")
+    counts = Counter(row["source_file"] for row in rows)
+    weights = np.asarray([counts[row["source_file"]] ** (-power) for row in rows], dtype=np.float64)
+    return weights / weights.mean()
+
+
 def train_model(
     input_path: Path, artifact_dir: Path, seed: int, test_percent: int,
     split_column: str | None = None, train_split: str = "train",
     evaluation_split: str = "test", max_rows_per_source: int = 0,
-    include_tiers: set[str] | None = None,
+    include_tiers: set[str] | None = None, source_weight_power: float = 0.0,
 ) -> dict[str, object]:
     rows = load_rows(input_path, max_rows_per_source, seed, include_tiers)
     train_rows, test_rows = split_rows(
@@ -98,7 +109,8 @@ def train_model(
         random_state=seed,
         average=True,
     )
-    model.fit(x_train, y_train)
+    weights = source_balance_weights(train_rows, source_weight_power)
+    model.fit(x_train, y_train, sample_weight=weights)
     prediction = np.clip(model.predict(x_test), 0.0, 1.0)
     overall = regression_metrics(y_test, prediction)
     by_source: dict[str, dict[str, float]] = {}
@@ -118,6 +130,7 @@ def train_model(
         "train_split": train_split,
         "evaluation_split": evaluation_split,
         "max_rows_per_source": max_rows_per_source,
+        "source_weight_power": source_weight_power,
         "include_tiers": sorted(include_tiers) if include_tiers else None,
         "seed": seed,
         "train_records": len(train_rows),
@@ -154,6 +167,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--evaluation-split", default="test")
     parser.add_argument("--max-rows-per-source", type=int, default=0)
     parser.add_argument("--include-tiers", nargs="*")
+    parser.add_argument("--source-weight-power", type=float, default=0.0)
     return parser
 
 
@@ -164,6 +178,7 @@ def main() -> None:
         args.split_column, args.train_split, args.evaluation_split,
         args.max_rows_per_source,
         set(args.include_tiers) if args.include_tiers else None,
+        args.source_weight_power,
     ), ensure_ascii=False, indent=2))
 
 

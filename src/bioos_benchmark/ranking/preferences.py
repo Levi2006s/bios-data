@@ -327,9 +327,15 @@ def validate_preference_pairs(
 
 def read_csv_rows(
     path: Path, split: str | None = None, include_tiers: set[str] | None = None,
+    split_column: str = "split",
 ) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
+    if rows and split_column not in rows[0]:
+        raise ValueError(f"Split column not found: {split_column}")
+    if split_column != "split":
+        for row in rows:
+            row["split"] = row.get(split_column, "")
     if split is not None:
         rows = [row for row in rows if _clean_text(row.get("split")) == split]
     if include_tiers:
@@ -355,6 +361,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--split", default="train")
+    parser.add_argument("--split-column", default="split")
     parser.add_argument("--min-gap", type=float, default=0.0)
     parser.add_argument("--max-pairs-per-group", type=int, default=100_000)
     parser.add_argument("--max-pairs-total", type=int, default=1_000_000)
@@ -369,6 +376,7 @@ def main() -> None:
     rows = read_csv_rows(
         args.input, args.split or None,
         set(args.include_tiers) if args.include_tiers else None,
+        args.split_column,
     )
     pairs = build_preference_pairs(
         rows,

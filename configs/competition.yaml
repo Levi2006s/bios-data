@@ -8,7 +8,7 @@ competition:
 preliminary_stage:
   task: antigen_conditioned_antibody_affinity_ranking
   start_date: 2026-04-01
-  end_date: 2026-08-07
+  end_date: 2026-08-06
   primary_metric: spearman_correlation
   advancing_teams: 20
   metric_implementation:

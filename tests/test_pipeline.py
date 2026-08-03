@@ -3,9 +3,11 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+import numpy as np
+
 from bioos_benchmark.data import AA20, RawRecord, normalize_sequence, percentile_scores
 from bioos_benchmark.design import generate_candidates, liabilities, mutation_notation
-from bioos_benchmark.train import load_rows, split_rows
+from bioos_benchmark.train import load_rows, source_balance_weights, split_rows
 
 
 def test_normalize_sequence() -> None:
@@ -42,6 +44,13 @@ def test_train_respects_explicit_split_and_source_cap(tmp_path: Path) -> None:
     assert train and test
     assert all(row["fold"] == "train" for row in train)
     assert all(row["fold"] == "test" for row in test)
+
+
+def test_source_balance_weights_equalize_total_source_mass() -> None:
+    rows = [{"source_file": "large"}] * 4 + [{"source_file": "small"}]
+    weights = source_balance_weights(rows, power=1.0)
+    assert np.isclose(weights[:4].sum(), weights[4:].sum())
+    assert np.isclose(weights.mean(), 1.0)
 
 
 def test_candidate_generation() -> None:

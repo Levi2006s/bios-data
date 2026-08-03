@@ -325,11 +325,14 @@ def train_math_ranker(
     alpha: float = 1e-5,
     max_iter: int = 2000,
     include_tiers: set[str] | None = None,
+    split_column: str = "split",
 ) -> dict[str, object]:
     rows = _read_rows(input_path, include_tiers)
+    if rows and split_column not in rows[0]:
+        raise ValueError(f"Split column not found: {split_column}")
     pairs = _read_pairs(pairs_path)
-    train_rows = _split_rows(rows, train_split)
-    validation_rows = _split_rows(rows, validation_split)
+    train_rows = [row for row in rows if str(row.get(split_column, "")).strip() == train_split]
+    validation_rows = [row for row in rows if str(row.get(split_column, "")).strip() == validation_split]
     if not train_rows:
         raise ValueError(f"No rows found for train split: {train_split}")
     ranker = FeaturePairwiseRanker(
@@ -353,6 +356,7 @@ def train_math_ranker(
         "alpha": alpha,
         "max_iter": max_iter,
         "include_tiers": sorted(include_tiers) if include_tiers else None,
+        "split_column": split_column,
     }
     if validation_rows:
         validation_scores = ranker.predict_score(validation_rows)
@@ -394,6 +398,7 @@ def train_parser() -> argparse.ArgumentParser:
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--train-split", default="train")
     parser.add_argument("--validation-split", default="validation")
+    parser.add_argument("--split-column", default="split")
     parser.add_argument("--n-features", type=int, default=2**16)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--alpha", type=float, default=1e-5)
@@ -424,6 +429,7 @@ def main_train() -> None:
         alpha=args.alpha,
         max_iter=args.max_iter,
         include_tiers=set(args.include_tiers) if args.include_tiers else None,
+        split_column=args.split_column,
     )
     print(json.dumps(metrics, ensure_ascii=False, indent=2))
 
