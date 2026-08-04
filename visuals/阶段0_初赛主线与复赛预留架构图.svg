@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000">
+  <rect width="1800" height="1000" fill="#F8FAFC"/>
+  <style>.title{font:700 40px sans-serif;fill:#172033}.sub{font:19px sans-serif;fill:#526079}.h{font:700 22px sans-serif;fill:#172033}.t{font:17px sans-serif;fill:#45536B}.tag{font:700 17px monospace;fill:#1557A0}.box{fill:#FFF;stroke:#9CB7D9;stroke-width:3}.main{fill:#EEF5FC;stroke:#2D72B8;stroke-width:3}.reserve{fill:#FFF;stroke:#7F8DA3;stroke-width:2;stroke-dasharray:10 8}.gate{fill:#FFF7E8;stroke:#C58A24;stroke-width:3}.arrow{stroke:#506784;stroke-width:4;fill:none;marker-end:url(#a)}.dash{stroke:#7F8DA3;stroke-width:3;stroke-dasharray:10 8;fill:none;marker-end:url(#g)}</style>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#506784"/></marker><marker id="g" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7F8DA3"/></marker></defs>
+  <text x="70" y="70" class="title">初赛主线与第二阶段预留接口</text>
+  <text x="70" y="112" class="sub">实线是当前优先级：最大化无泄漏 Spearman；虚线只表示未来接口，不代表已有标签、模型或结果</text>
+  <rect x="70" y="215" width="280" height="170" rx="16" class="box"/><text x="100" y="258" class="tag">INPUT</text><text x="100" y="300" class="h">官方公开数据</text><text x="100" y="340" class="t">已有抗原 / 抗体记录</text><text x="100" y="370" class="t">标签与来源元数据</text>
+  <rect x="420" y="215" width="320" height="170" rx="16" class="main"/><text x="450" y="258" class="tag">GOVERNANCE</text><text x="450" y="300" class="h">清洗、去重与防泄漏划分</text><text x="450" y="340" class="t">抗原 · 家族 · 聚类 · 结构同源</text><text x="450" y="370" class="t">固定折与折外预测</text>
+  <rect x="810" y="215" width="300" height="170" rx="16" class="main"/><text x="840" y="258" class="tag">SHARED</text><text x="840" y="300" class="h">共享预训练编码器</text><text x="840" y="340" class="t">抗原编码 · 抗体编码</text><text x="840" y="370" class="t">交互融合 · 冻结/部分微调</text>
+  <rect x="1180" y="190" width="350" height="220" rx="16" class="gate"/><text x="1210" y="238" class="tag">PRIMARY · PRELIMINARY</text><text x="1210" y="283" class="h">Affinity Ranking Head</text><text x="1210" y="325" class="t">MSE/Huber baseline</text><text x="1210" y="355" class="t">Pairwise · Listwise · Joint loss</text><text x="1210" y="385" class="t">主选模指标：OOF Spearman</text>
+  <rect x="1580" y="225" width="170" height="150" rx="16" class="main"/><text x="1605" y="268" class="tag">OUTPUT</text><text x="1605" y="310" class="h">候选排名</text><text x="1605" y="348" class="t">rank ensemble</text>
+  <path d="M350 300 H410" class="arrow"/><path d="M740 300 H800" class="arrow"/><path d="M1110 300 H1170" class="arrow"/><path d="M1530 300 H1570" class="arrow"/>
+  <text x="70" y="510" class="h">第二阶段接口预留（不占用当前主线训练预算）</text>
+  <rect x="100" y="575" width="270" height="130" rx="15" class="reserve"/><text x="130" y="620" class="h">Binding</text><text x="130" y="660" class="t">ELISA 阳性概率头</text>
+  <rect x="430" y="575" width="270" height="130" rx="15" class="reserve"/><text x="460" y="620" class="h">Expression</text><text x="460" y="660" class="t">排序 / 回归头</text>
+  <rect x="760" y="575" width="270" height="130" rx="15" class="reserve"/><text x="790" y="620" class="h">Aggregation</text><text x="790" y="660" class="t">风险评分头</text>
+  <rect x="1090" y="575" width="270" height="130" rx="15" class="reserve"/><text x="1120" y="620" class="h">Novelty</text><text x="1120" y="660" class="t">合法性与硬过滤接口</text>
+  <rect x="1420" y="575" width="300" height="130" rx="15" class="reserve"/><text x="1450" y="620" class="h">Portfolio Selection</text><text x="1450" y="660" class="t">6 候选组合与多样性接口</text>
+  <path d="M960 385 V500 H235 V565" class="dash"/><path d="M960 500 H565 V565" class="dash"/><path d="M960 500 H895 V565" class="dash"/><path d="M960 500 H1225 V565" class="dash"/><path d="M960 500 H1570 V565" class="dash"/>
+  <rect x="70" y="810" width="1680" height="120" rx="16" fill="#FFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="100" y="852" class="h">验证合同</text><text x="100" y="892" class="t">全局 Spearman · macro Spearman（按抗原）· Pearson · RMSE/MAE · Top-k · 来源/类型/区间分组；固定无泄漏折上消融</text>
+  <text x="100" y="920" class="sub">来源：赛事官方全文与 DataCastle 官方页面（核验于 2026-07-26）。阶段0仅建立架构，不含训练结果。</text>
+</svg>

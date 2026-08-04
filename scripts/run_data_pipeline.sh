@@ -19,11 +19,24 @@ python -m bioos_benchmark.prepare \
   --data-root "$DATA_ROOT" \
   --output data/processed/benchmark.csv \
   --max-rows-per-file "$MAX_ROWS" \
-  --direction-overrides configs/direction_overrides.csv
+  --direction-overrides configs/direction_overrides.csv \
+  --label-registry configs/label_registry.csv
 
-python -m bioos_benchmark.split \
+python -m bioos_benchmark.curation \
+  --data-root "$DATA_ROOT" \
+  --registry configs/label_registry.csv \
+  --audit data/processed/audit.csv \
+  --output-dir data/processed/curation
+
+python -m bioos_benchmark.apply_splits \
   --input data/processed/benchmark.csv \
-  --output data/processed/benchmark_with_split.csv
+  --manifest data/processed/curation/split_group_manifest.csv \
+  --output data/processed/benchmark_with_group_splits.csv
+
+python -m bioos_benchmark.identity_split \
+  --input data/processed/benchmark_with_group_splits.csv \
+  --output data/processed/benchmark_with_split.csv \
+  --column split
 
 python -m bioos_benchmark.validate \
   --input data/processed/benchmark_with_split.csv \

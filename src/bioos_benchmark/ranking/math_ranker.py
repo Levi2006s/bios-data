@@ -22,9 +22,11 @@ def _record_id(row: Mapping[str, object]) -> str:
     return str(row.get("record_id", "") or "").strip()
 
 
-def _read_rows(path: Path) -> list[dict[str, str]]:
+def _read_rows(path: Path, include_tiers: set[str] | None = None) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         rows = list(csv.DictReader(handle))
+    if include_tiers:
+        rows = [row for row in rows if str(row.get("tier", "")).strip() in include_tiers]
     ids = [_record_id(row) for row in rows]
     if not rows or any(not item for item in ids):
         raise ValueError("Input must be a non-empty CSV with record_id.")
@@ -322,11 +324,15 @@ def train_math_ranker(
     seed: int = 42,
     alpha: float = 1e-5,
     max_iter: int = 2000,
+    include_tiers: set[str] | None = None,
+    split_column: str = "split",
 ) -> dict[str, object]:
-    rows = _read_rows(input_path)
+    rows = _read_rows(input_path, include_tiers)
+    if rows and split_column not in rows[0]:
+        raise ValueError(f"Split column not found: {split_column}")
     pairs = _read_pairs(pairs_path)
-    train_rows = _split_rows(rows, train_split)
-    validation_rows = _split_rows(rows, validation_split)
+    train_rows = [row for row in rows if str(row.get(split_column, "")).strip() == train_split]
+    validation_rows = [row for row in rows if str(row.get(split_column, "")).strip() == validation_split]
     if not train_rows:
         raise ValueError(f"No rows found for train split: {train_split}")
     ranker = FeaturePairwiseRanker(
@@ -349,6 +355,8 @@ def train_math_ranker(
         "n_features": n_features,
         "alpha": alpha,
         "max_iter": max_iter,
+        "include_tiers": sorted(include_tiers) if include_tiers else None,
+        "split_column": split_column,
     }
     if validation_rows:
         validation_scores = ranker.predict_score(validation_rows)
@@ -390,10 +398,12 @@ def train_parser() -> argparse.ArgumentParser:
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--train-split", default="train")
     parser.add_argument("--validation-split", default="validation")
+    parser.add_argument("--split-column", default="split")
     parser.add_argument("--n-features", type=int, default=2**16)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--alpha", type=float, default=1e-5)
     parser.add_argument("--max-iter", type=int, default=2000)
+    parser.add_argument("--include-tiers", nargs="*")
     return parser
 
 
@@ -418,6 +428,8 @@ def main_train() -> None:
         seed=args.seed,
         alpha=args.alpha,
         max_iter=args.max_iter,
+        include_tiers=set(args.include_tiers) if args.include_tiers else None,
+        split_column=args.split_column,
     )
     print(json.dumps(metrics, ensure_ascii=False, indent=2))
 

@@ -13,19 +13,21 @@
 | 方向 +1 | 49 |
 | 方向 -1 | 33 |
 | 无监督方向 | 1 |
-| Gold | 74 |
+| Gold | 71 |
 | Silver | 5 |
 | Weak | 3 |
-| Auxiliary | 1 |
+| Auxiliary | 4 |
+
+三份二分类 binding 数据保留为辅助分类监督，但明确排除在主亲和力排序监督之外。
 
 按记录统计：
 
 | 等级 | 原始行 | 通过人工规则的监督行 | 缺失/非法标签 |
 |---|---:|---:|---:|
-| Gold | 740,456 | 740,453 | 0，另有 3 条超范围 |
+| Gold | 88,155 | 88,152 | 0，另有 3 条超范围 |
 | Silver | 342,800 | 169,682 | 173,118 |
 | Weak | 3,515,760 | 1,099,640 | 2,416,120 |
-| Auxiliary | 5,253 | 0 | 不适用 |
+| Auxiliary | 657,554 | 0 | 不适用 |
 
 ## 登记表字段
 
@@ -52,4 +54,3 @@ python scripts/build_label_registry.py `
   --output configs/label_registry.csv `
   --overrides configs/direction_overrides.csv
 ```
-

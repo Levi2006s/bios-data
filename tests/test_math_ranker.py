@@ -107,6 +107,8 @@ def test_feature_pairwise_ranker_scores_and_roundtrips(tmp_path: Path) -> None:
 
 def test_train_and_predict_interfaces(tmp_path: Path) -> None:
     rows = records()
+    for row in rows:
+        row["family_split"] = row["split"]
     input_path = tmp_path / "records.csv"
     pairs_path = tmp_path / "pairs.csv"
     artifact_dir = tmp_path / "artifact"
@@ -126,8 +128,10 @@ def test_train_and_predict_interfaces(tmp_path: Path) -> None:
         n_features=256,
         seed=3,
         max_iter=500,
+        split_column="family_split",
     )
     assert metrics["train_records"] == 3
+    assert metrics["split_column"] == "family_split"
     assert (artifact_dir / "model.joblib").exists()
     assert (artifact_dir / "predictions_validation.csv").exists()
 

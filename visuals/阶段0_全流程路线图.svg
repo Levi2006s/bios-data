@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <rect width="1600" height="900" fill="#F8FAFC"/>
+  <style>.title{font:700 38px sans-serif;fill:#172033}.sub{font:18px sans-serif;fill:#526079}.h{font:700 21px sans-serif;fill:#172033}.t{font:16px sans-serif;fill:#3F4B61}.n{font:700 18px monospace;fill:#1557A0}.box{fill:#FFFFFF;stroke:#9CB7D9;stroke-width:2}.future{fill:#EEF5FC;stroke:#2D72B8;stroke-width:2}.gate{fill:#FFF7E8;stroke:#C58A24;stroke-width:2}.arrow{stroke:#506784;stroke-width:3;fill:none;marker-end:url(#a)}</style>
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#506784"/></marker></defs>
+  <text x="70" y="70" class="title">阶段0后全流程路线图</text><text x="70" y="105" class="sub">只处理已有候选字符串：审计 → 规范化 → 无泄漏验证 → 排名文件</text>
+  <rect x="70" y="155" width="315" height="130" rx="14" class="box"/><text x="95" y="193" class="n">阶段0 · 已完成</text><text x="95" y="228" class="h">规则 / 数据目录 / 环境</text><text x="95" y="260" class="t">122 文件 · 30.405 GiB · RTX 4090</text>
+  <rect x="465" y="155" width="315" height="130" rx="14" class="future"/><text x="490" y="193" class="n">阶段1–2</text><text x="490" y="228" class="h">数据审计与标签规范化</text><text x="490" y="260" class="t">schema · 方向 · 单位 · 截断 · 质量层</text>
+  <rect x="860" y="155" width="315" height="130" rx="14" class="future"/><text x="885" y="193" class="n">阶段3</text><text x="885" y="228" class="h">去重与无泄漏切分</text><text x="885" y="260" class="t">重复组件 · 来源留出 · 抗原冷启动</text>
+  <rect x="1215" y="155" width="315" height="130" rx="14" class="gate"/><text x="1240" y="193" class="n">验收闸门</text><text x="1240" y="228" class="h">规则与运行环境就绪</text><text x="1240" y="260" class="t">官方口径 · GPU 映射 · split 冻结</text>
+  <path d="M385 220 H455" class="arrow"/><path d="M780 220 H850" class="arrow"/><path d="M1175 220 H1205" class="arrow"/>
+  <rect x="135" y="410" width="315" height="130" rx="14" class="future"/><text x="160" y="448" class="n">阶段4</text><text x="160" y="483" class="h">预训练编码器特征</text><text x="160" y="515" class="t">只读推理 · 分片缓存 · 版本哈希</text>
+  <rect x="515" y="410" width="315" height="130" rx="14" class="future"/><text x="540" y="448" class="n">阶段5</text><text x="540" y="483" class="h">排序模型</text><text x="540" y="515" class="t">pointwise · pairwise · listwise</text>
+  <rect x="895" y="410" width="315" height="130" rx="14" class="future"/><text x="920" y="448" class="n">阶段6</text><text x="920" y="483" class="h">严格交叉验证</text><text x="920" y="515" class="t">OOF Spearman · 分组结果 · 稳健性</text>
+  <rect x="1275" y="410" width="255" height="130" rx="14" class="future"/><text x="1300" y="448" class="n">阶段7</text><text x="1300" y="483" class="h">排名集成与提交</text><text x="1300" y="515" class="t">rank average · schema QA</text>
+  <path d="M1400 285 V350 H292 V400" class="arrow"/><path d="M450 475 H505" class="arrow"/><path d="M830 475 H885" class="arrow"/><path d="M1210 475 H1265" class="arrow"/>
+  <rect x="70" y="685" width="1460" height="120" rx="14" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="2"/>
+  <text x="100" y="725" class="h">贯穿式约束</text><text x="100" y="760" class="t">原始数据只读　·　不生成/修改字符串　·　标签变换可追溯　·　组件不跨折　·　只用 OOF 选模　·　提交前独立校验</text>
+  <text x="100" y="790" class="sub">当前停点：阶段0完成，等待用户确认。来源：本地 idea.md、data 目录元数据与环境审计（2026-07-26）。</text>
+</svg>

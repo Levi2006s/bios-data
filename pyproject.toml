@@ -18,21 +18,42 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
 numbering = ["anarcii==2.0.5"]
+gpu = ["torch>=2.2,<3"]
+pretrained = [
+  "torch>=2.2,<3",
+  "transformers>=4.48,<5",
+  "accelerate>=1.2,<2",
+  "huggingface_hub>=0.34,<2",
+  "safetensors>=0.5,<1",
+]
 
 [project.scripts]
 bioos-prepare = "bioos_benchmark.prepare:main"
 bioos-audit = "bioos_benchmark.audit:main"
 bioos-curate = "bioos_benchmark.curation:main"
 bioos-apply-splits = "bioos_benchmark.apply_splits:main"
+bioos-purge-leakage = "bioos_benchmark.purge_leakage:main"
+bioos-identity-split = "bioos_benchmark.identity_split:main"
+bioos-family-split = "bioos_benchmark.family_split:main"
 bioos-split = "bioos_benchmark.split:main"
 bioos-validate = "bioos_benchmark.validate:main"
 bioos-train = "bioos_benchmark.train:main"
+bioos-train-experiment-aware = "bioos_benchmark.experiment_train:main"
+bioos-train-neural = "bioos_benchmark.neural_ranker:main"
+bioos-neural-ensemble = "bioos_benchmark.neural_ensemble:main"
+bioos-esm-embeddings = "bioos_benchmark.esm_embeddings:main"
+bioos-train-esm-head = "bioos_benchmark.esm_head:main"
+bioos-finetune-esm = "bioos_benchmark.esm_finetune:main"
+bioos-train-esm-pairwise = "bioos_benchmark.esm_pairwise:main"
+bioos-bootstrap-compare = "bioos_benchmark.bootstrap_compare:main"
+bioos-sweep-expert-blend = "bioos_benchmark.blend_sweep:main"
 bioos-design = "bioos_benchmark.design:main"
 bioos-build-pairs = "bioos_benchmark.ranking.preferences:main"
 bioos-train-math = "bioos_benchmark.ranking.math_ranker:main_train"
 bioos-predict-math = "bioos_benchmark.ranking.math_ranker:main_predict"
 bioos-evaluate = "bioos_benchmark.ranking.evaluation:main"
 bioos-ensemble = "bioos_benchmark.ranking.ensemble:main_ensemble"
+bioos-sweep-validation-ensemble = "bioos_benchmark.ranking.validation_ensemble:main"
 bioos-submit = "bioos_benchmark.ranking.ensemble:main_submission"
 
 [tool.setuptools]

@@ -1,0 +1,87 @@
+# 阶段文档索引
+
+所有正式阶段报告统一保存在本目录下，不再在项目根目录或 `reports/` 中维护重复副本。
+
+## 阶段 0：赛题冻结与规则核验
+
+- [`stage0/STAGE0_SUMMARY.md`](stage0/STAGE0_SUMMARY.md)
+- [`stage0/OFFICIAL_RULES_VERIFICATION.md`](stage0/OFFICIAL_RULES_VERIFICATION.md)
+- [`stage0/COMPETITION_RULES_ENGINEERING_BASELINE.md`](stage0/COMPETITION_RULES_ENGINEERING_BASELINE.md)
+- [`stage0/FILE_INVENTORY.txt`](stage0/FILE_INVENTORY.txt)
+
+## 阶段 1：数据审计与可靠 Benchmark
+
+- [`stage1/STAGE1_START_AND_AUDIT.md`](stage1/STAGE1_START_AND_AUDIT.md)
+- [`stage1/INVENTORY_REPORT.md`](stage1/INVENTORY_REPORT.md)
+- [`stage1/LABEL_PROFILE_REPORT.md`](stage1/LABEL_PROFILE_REPORT.md)
+- [`stage1/FULL_PIPELINE_RESULTS_2026-08-03.md`](stage1/FULL_PIPELINE_RESULTS_2026-08-03.md)
+
+## 阶段 2：实验条件模型与排序集成
+
+- [`stage2/EXPERIMENT_AWARE_RESULTS_2026-08-03.md`](stage2/EXPERIMENT_AWARE_RESULTS_2026-08-03.md)
+
+## 阶段 3：受约束候选提案
+
+- [`stage3/CONSERVATIVE_CANDIDATE_PROPOSAL_2026-08-03.md`](stage3/CONSERVATIVE_CANDIDATE_PROPOSAL_2026-08-03.md)
+
+阶段 3 不属于当前初赛数学模型主线，保留为复赛能力预研记录。
+
+## 阶段 4：严格家族泛化与模型升级
+
+- [`stage4/STRICT_FAMILY_MODEL_UPGRADE_2026-08-03.md`](stage4/STRICT_FAMILY_MODEL_UPGRADE_2026-08-03.md)
+
+## 阶段 5：GPU 抗体–抗原双塔模型
+
+- [`stage5/GPU_DUAL_ENCODER_RESULTS_2026-08-03.md`](stage5/GPU_DUAL_ENCODER_RESULTS_2026-08-03.md)
+
+## 阶段 6：预训练蛋白编码器
+
+- [`stage6/PRETRAINED_ENCODER_START_2026-08-03.md`](stage6/PRETRAINED_ENCODER_START_2026-08-03.md)
+
+## 阶段 7：ESM 局部微调与池化消融
+
+- [`stage7/ESM_FINETUNE_AND_POOLING_ABLATION_2026-08-03.md`](stage7/ESM_FINETUNE_AND_POOLING_ABLATION_2026-08-03.md)
+
+## 阶段 8：排名提升的不确定性评估
+
+- [`stage8/PAIRED_BOOTSTRAP_EVALUATION_2026-08-03.md`](stage8/PAIRED_BOOTSTRAP_EVALUATION_2026-08-03.md)
+
+## 阶段 9：认证表驱动的 assay-safe 标签重建
+
+- [`stage9/ASSAY_SAFE_LABEL_REBUILD_2026-08-03.md`](stage9/ASSAY_SAFE_LABEL_REBUILD_2026-08-03.md)
+
+## 阶段 10：ESM-2 35M 容量升级
+
+- [`stage10/ESM35M_CAPACITY_UPGRADE_2026-08-03.md`](stage10/ESM35M_CAPACITY_UPGRADE_2026-08-03.md)
+
+## 阶段 11：全量排序、ESM2-150M 与域路由
+
+- [`stage11/FULL_DATA_ESM150_DOMAIN_ROUTING_2026-08-03.md`](stage11/FULL_DATA_ESM150_DOMAIN_ROUTING_2026-08-03.md)
+
+## 阶段 12：位置互作、母本簇路由与残基层微调
+
+- [`stage12/POSITION_INTERACTION_AND_ESM_FINETUNE_2026-08-03.md`](stage12/POSITION_INTERACTION_AND_ESM_FINETUNE_2026-08-03.md)
+- [`stage13/TEAM_IDEA_INTEGRATION_2026-08-03.md`](stage13/TEAM_IDEA_INTEGRATION_2026-08-03.md)
+- [`stage14/FULL_DATA_GLOBAL_FAMILY_V2_2026-08-04.md`](stage14/FULL_DATA_GLOBAL_FAMILY_V2_2026-08-04.md)
+- [`stage15/ASSAY_EXPERT_DEDUP_AND_DUAL_CHAIN_ESM_2026-08-04.md`](stage15/ASSAY_EXPERT_DEDUP_AND_DUAL_CHAIN_ESM_2026-08-04.md)
+- [`stage16/ASSAY_CONDITIONED_POSITION_CONV_2026-08-04.md`](stage16/ASSAY_CONDITIONED_POSITION_CONV_2026-08-04.md)
+- [`stage17/LANDSCAPE_NOISE_AND_PARENT_DIAGNOSIS_2026-08-04.md`](stage17/LANDSCAPE_NOISE_AND_PARENT_DIAGNOSIS_2026-08-04.md)
+- [`stage18/TRAIN_ONLY_ESM_PARENT_CLUSTERING_2026-08-04.md`](stage18/TRAIN_ONLY_ESM_PARENT_CLUSTERING_2026-08-04.md)
+- [`stage19/H119_TRANSFER_ADAPTATION_2026-08-04.md`](stage19/H119_TRANSFER_ADAPTATION_2026-08-04.md)
+- [`stage20/CONTINUOUS_ESM_OOD_AUDIT_2026-08-04.md`](stage20/CONTINUOUS_ESM_OOD_AUDIT_2026-08-04.md)
+- [`stage21/INNER_FAMILY_PARENT_DELTA_2026-08-04.md`](stage21/INNER_FAMILY_PARENT_DELTA_2026-08-04.md)
+
+## 目录边界
+
+- `docs/`：设计、审计、阶段报告和训练说明。
+- `src/bioos_benchmark/`：可安装的模型与数据管线代码。
+- `tests/`：自动化测试。
+- `scripts/`：数据处理和复现入口。
+- `configs/`：赛事与标签配置。
+- `data/`：原始数据，以及按脚本生成且默认不提交 Git 的 `data/processed/`。
+- `artifacts/`：模型、预测和实验指标；属于可再生产物，默认不提交 Git。
+- `visuals/`：阶段 0 架构图等静态图片。
+
+## 模型原理专题
+
+- [`ESM_TECHNICAL_GUIDE.md`](ESM_TECHNICAL_GUIDE.md)：ESM、Transformer、CNN 对比及 AbCompass 的预训练排序路线。
