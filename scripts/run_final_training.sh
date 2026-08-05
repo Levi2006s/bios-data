@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+export PYTHONPATH="$PROJECT_DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+
 DATA_PATH="${1:-data/processed/benchmark_team_routed_v6_global_family.csv}"
 ESM_PATH="${2:-artifacts/final/esm150_embeddings.pt}"
 
