@@ -51,10 +51,10 @@ def encode(rows:list[dict[str,str]],heavy_length:int,light_length:int)->torch.Te
     return torch.tensor(values,dtype=torch.long)
 
 
-def encode_parent_delta(rows:list[dict[str,str]],heavy_length:int,light_length:int,parent_assignments,references)->torch.Tensor:
+def encode_parent_delta(rows:list[dict[str,str]],heavy_length:int,light_length:int,parent_assignments,references,pair_references=None)->torch.Tensor:
     values=[];alphabet=len(AA)+1
     for row in rows:
-        key=row["heavy"]+"\x1f"+row.get("light","");reference=references[parent_assignments[key]]
+        key=row["heavy"]+"\x1f"+row.get("light","");reference=pair_references[key] if pair_references is not None else references[parent_assignments[key]]
         sequence=row["heavy"].ljust(heavy_length,"-")[:heavy_length]+row.get("light","").ljust(light_length,"-")[:light_length]
         parent=reference["heavy"].ljust(heavy_length,"-")[:heavy_length]+reference["light"].ljust(light_length,"-")[:light_length]
         values.append([0 if current==origin else 1+AA.get(origin,0)*alphabet+AA.get(current,0) for origin,current in zip(parent,sequence)])
@@ -81,8 +81,8 @@ def train(input_path:Path,artifact_dir:Path,*,seed:int=48,epochs:int=100,batch_s
             if deduplicate_biological and key in seen:continue
             seen.add(key);rows.append(r)
     def assay_name(source):return "alpha_landscape_1" if ("engelhart2022dataset" in source or "affinity1.csv" in source) else ("alpha_landscape_2" if "affinity2.csv" in source else source)
-    parent_payload=joblib.load(parent_clusters_path) if parent_clusters_path else None;parent_assignments=parent_payload["assignments"] if parent_payload else None;parent_references=parent_payload.get("references") if parent_payload else None
-    if parent_reference_delta and not parent_references:raise ValueError("parent cluster artifact does not contain reference consensuses")
+    parent_payload=joblib.load(parent_clusters_path) if parent_clusters_path else None;parent_assignments=parent_payload["assignments"] if parent_payload else None;parent_references=parent_payload.get("references") if parent_payload else None;pair_references=parent_payload.get("pair_references") if parent_payload else None
+    if parent_reference_delta and not parent_references and not pair_references:raise ValueError("parent cluster artifact does not contain reference sequences")
     def parent_name(r):return parent_assignments[r["heavy"]+"\x1f"+r.get("light","")] if parent_assignments is not None else None
     def condition_name(r):
         base=assay_name(r["source_file"])
@@ -107,7 +107,7 @@ def train(input_path:Path,artifact_dir:Path,*,seed:int=48,epochs:int=100,batch_s
     assay_names=sorted({condition_name(r) for r in rows});assay_ids={name:i for i,name in enumerate(assay_names)};group_names=sorted({comparison_name(r) for r in rows}|set(assay_names));group_ids={name:i for i,name in enumerate(group_names)}
     lh=max(len(r["heavy"]) for r in rows);ll=max(len(r.get("light","")) for r in rows)
     def tensors(values):
-        delta=encode_parent_delta(values,lh,ll,parent_assignments,parent_references) if parent_reference_delta else torch.zeros((len(values),lh+ll),dtype=torch.long)
+        delta=encode_parent_delta(values,lh,ll,parent_assignments,parent_references,pair_references) if parent_reference_delta else torch.zeros((len(values),lh+ll),dtype=torch.long)
         return TensorDataset(encode(values,lh,ll),delta,torch.tensor([float(r["score"]) for r in values],dtype=torch.float32),torch.tensor([group_ids[comparison_name(r)] for r in values]),torch.tensor([assay_ids[condition_name(r)] for r in values]),torch.arange(len(values)))
     generator=torch.Generator().manual_seed(seed);train_loader=DataLoader(tensors(tr),batch_size=batch_size,shuffle=True,generator=generator,pin_memory=True);val_loader=DataLoader(tensors(va),batch_size=batch_size*2,pin_memory=True)
     device=torch.device("cuda");model=PositionalInteractionNet(lh+ll,num_assays=len(assay_ids),parent_reference_delta=parent_reference_delta).to(device)
@@ -144,7 +144,7 @@ def train(input_path:Path,artifact_dir:Path,*,seed:int=48,epochs:int=100,batch_s
         scheduler.step()
         if stale>=15:break
     assert best_state is not None;model.load_state_dict(best_state);truth,prediction,indices=predict(model,val_loader,device)
-    metrics={"model":"position_preserving_conv_ranker","seed":seed,"epochs_completed":len(history),"rank_weight":rank_weight,"split_column":split_column,"task_route":task_route,"deduplicate_biological":deduplicate_biological,"aggregate_train_sequences":aggregate_train_sequences,"aggregate_repeat_power":aggregate_repeat_power,"condition_on_lengths":condition_on_lengths,"parent_clusters_path":str(parent_clusters_path) if parent_clusters_path else None,"parent_reference_delta":parent_reference_delta,"heavy_length_filter":heavy_length,"light_length_filter":light_length,"pretrained_checkpoint":str(pretrained_checkpoint) if pretrained_checkpoint else None,"freeze_backbone":freeze_backbone,"loaded_parameters":loaded_parameters,"raw_train_records":raw_train_records,"assays":assay_ids,"train_records":len(tr),"validation_records":len(va),"best_validation_spearman":best,"overall":regression_metrics(truth,prediction),"history":history}
+    metrics={"model":"position_preserving_conv_ranker","seed":seed,"epochs_completed":len(history),"rank_weight":rank_weight,"split_column":split_column,"task_route":task_route,"deduplicate_biological":deduplicate_biological,"aggregate_train_sequences":aggregate_train_sequences,"aggregate_repeat_power":aggregate_repeat_power,"condition_on_lengths":condition_on_lengths,"parent_clusters_path":str(parent_clusters_path) if parent_clusters_path else None,"parent_reference_delta":parent_reference_delta,"local_pair_references":pair_references is not None,"heavy_length_filter":heavy_length,"light_length_filter":light_length,"pretrained_checkpoint":str(pretrained_checkpoint) if pretrained_checkpoint else None,"freeze_backbone":freeze_backbone,"loaded_parameters":loaded_parameters,"raw_train_records":raw_train_records,"assays":assay_ids,"train_records":len(tr),"validation_records":len(va),"best_validation_spearman":best,"overall":regression_metrics(truth,prediction),"history":history}
     artifact_dir.mkdir(parents=True,exist_ok=True);torch.save({"state_dict":best_state,"heavy_length":lh,"light_length":ll,"metrics":metrics},artifact_dir/"model.pt");(artifact_dir/"metrics.json").write_text(json.dumps(metrics,ensure_ascii=False,indent=2),encoding="utf-8")
     with (artifact_dir/"predictions.csv").open("w",encoding="utf-8",newline="") as handle:
         writer=csv.writer(handle);writer.writerow(["record_id","source_file","truth","prediction"])

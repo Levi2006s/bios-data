@@ -71,6 +71,12 @@
 - [`stage20/CONTINUOUS_ESM_OOD_AUDIT_2026-08-04.md`](stage20/CONTINUOUS_ESM_OOD_AUDIT_2026-08-04.md)
 - [`stage21/INNER_FAMILY_PARENT_DELTA_2026-08-04.md`](stage21/INNER_FAMILY_PARENT_DELTA_2026-08-04.md)
 
+## 阶段 22：局部 ESM 参考与多分辨率父本
+
+- [`stage22/LOCAL_ESM_REFERENCE_AND_MULTIRESOLUTION_PARENTS_2026-08-05.md`](stage22/LOCAL_ESM_REFERENCE_AND_MULTIRESOLUTION_PARENTS_2026-08-05.md)
+
+阶段 22 的预注册外层 Spearman 为 0.462285，未超过阶段 21 的 0.462519，因此作为已完成消融保留，当前正式模型仍为阶段 21。
+
 ## 目录边界
 
 - `docs/`：设计、审计、阶段报告和训练说明。
