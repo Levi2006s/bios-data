@@ -18,5 +18,6 @@ output/
 outputs/
 deliverables/*.tar.gz
 deliverables/*.tar.gz.sha256
+BioOS_Submission/
 .agents/
 .codex/
