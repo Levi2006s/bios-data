@@ -123,17 +123,11 @@ python -m bioos_benchmark.design \
 6. 用 IgGM/dyMEAN/RFantibody评估抗原特异性和复合物结构；
 7. 最后做可开发性、多样性和结构置信度的 Pareto 筛选。
 
-详细里程碑见 `PLAN.md`，技术设计见 `docs/ALGORITHM_DESIGN.md`，训练说明见 `docs/TRAINING.md`。
+最终技术设计见 `docs/submission/ALGORITHM_DESIGN.md`，训练与推理见 `docs/submission/TRAINING_AND_INFERENCE.md`，环境安装见 `docs/submission/RUN_ENVIRONMENT.md`。
 
-## 7. 两位同学并行开发 AI 模块
+## 7. 最终提交结构
 
-计算机同学与数学同学的并行方案、公共数据接口、六个模块说明和模块文档模板，统一放在：
-
-```text
-docs/parallel_ai/README.md
-```
-
-两条路线分别独立输出 `record_id + score`，最后再做严格评价和百分位排名集成。开始编码前，两位同学应先共同确认 `docs/parallel_ai/SHARED_INTERFACES.md`。
+算法设计、训练/推理、环境和序列清单统一位于 `docs/submission/`；源代码位于 `src/bioos_benchmark/`，可执行入口位于 `scripts/`，最终非 VHH 序列与校验清单位于 `deliverables/`。历史阶段仅保留当前正式 Stage 21 和未晋升消融 Stage 22。
 
 ## 8. 测试
 

@@ -16,5 +16,7 @@ work/
 tmp/
 output/
 outputs/
+deliverables/*.tar.gz
+deliverables/*.tar.gz.sha256
 .agents/
 .codex/
