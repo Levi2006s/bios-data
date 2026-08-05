@@ -43,6 +43,7 @@ def export_ranking(data_path: Path, predictions_path: Path, output_path: Path, t
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     frame = pd.DataFrame(rows, columns=["Antigen", "VH/VHH", "VL", team_name])
+    frame.insert(3, "Rank 示例", "")
     if output_path.suffix.lower() == ".xlsx":
         frame.to_excel(output_path, index=False, sheet_name="Prediction")
     else:
