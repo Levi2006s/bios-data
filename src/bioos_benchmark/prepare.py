@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .data import (
     iter_csv_records,
-    percentile_scores,
+    grouped_percentile_scores,
     reservoir_sample,
     source_group,
     stable_record_id,
@@ -18,8 +18,11 @@ from .curation import label_is_valid, load_registry
 
 FIELDS = [
     "record_id", "source_group", "source_file", "antigen_id", "antigen_seq", "heavy", "light",
-    "cdrh3", "raw_label", "direction", "score",
+    "cdrh3", "raw_label", "direction", "score", "tier", "label_origin", "metric",
+    "comparison_group", "label_quality",
 ]
+
+TIER_QUALITY = {"Gold": 1.0, "Silver": 0.65, "Weak": 0.25, "Auxiliary": 0.0}
 
 
 def load_overrides(path: Path | None) -> dict[str, int]:
@@ -79,7 +82,7 @@ def prepare(
             if not records:
                 skipped.append(path.relative_to(data_root).as_posix())
                 continue
-            scores = percentile_scores(records)
+            scores = grouped_percentile_scores(records)
             for record, score in zip(records, scores):
                 record_id = stable_record_id(record)
                 if record_id in seen_record_ids:
@@ -100,6 +103,11 @@ def prepare(
                         "raw_label": f"{record.raw_label:.12g}",
                         "direction": record.direction,
                         "score": f"{score:.12g}",
+                        "tier": entry.get("tier", "") if entry else "",
+                        "label_origin": entry.get("label_origin", "") if entry else "",
+                        "metric": entry.get("metric", "") if entry else "",
+                        "comparison_group": record.comparison_group or record.source_file,
+                        "label_quality": f"{TIER_QUALITY.get(entry.get('tier', ''), 1.0):.12g}" if entry else "1",
                     }
                 )
                 counts[record.source_file] += 1

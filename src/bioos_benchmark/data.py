@@ -44,6 +44,7 @@ class RawRecord:
     cdrh3: str
     raw_label: float
     direction: int
+    comparison_group: str = ""
 
 
 def normalize_sequence(value: object) -> str:
@@ -140,7 +141,15 @@ def iter_csv_records(
         if not heavy or label is None:
             continue
         antigen_id = str(row.get(keys["antigen_id"], "") or path.stem).strip() if keys["antigen_id"] else path.stem
-        yield RawRecord(source, antigen_id, antigen_seq, heavy, light, cdrh3, label, direction)
+        comparison_group = source
+        if path.name == "AbRank_dataset.csv":
+            source_name = str(row.get("Source", "unknown") or "unknown").strip()
+            kd = str(row.get("Affinity_Kd [nM]", "") or "").strip().casefold()
+            ic50 = str(row.get("IC50 [ug/mL]", "") or "").strip().casefold()
+            missing = {"", "na", "n/a", "nan", "none", "\\"}
+            endpoint = "KD" if kd not in missing else "IC50" if ic50 not in missing else "other"
+            comparison_group = "::".join((source, source_name, endpoint, antigen_id))
+        yield RawRecord(source, antigen_id, antigen_seq, heavy, light, cdrh3, label, direction, comparison_group)
 
 
 def reservoir_sample(records: Iterable[RawRecord], limit: int | None, seed: int) -> list[RawRecord]:
@@ -176,6 +185,19 @@ def percentile_scores(records: list[RawRecord]) -> list[float]:
         for position in range(start, end):
             scores[order[position]] = percentile
         start = end
+    return scores
+
+
+def grouped_percentile_scores(records: list[RawRecord]) -> list[float]:
+    """Compute ranks only among records whose assay comparison group matches."""
+    groups: dict[str, list[int]] = {}
+    for index, record in enumerate(records):
+        group=record.comparison_group or record.source_file
+        groups.setdefault(group,[]).append(index)
+    scores=[0.5]*len(records)
+    for indices in groups.values():
+        values=percentile_scores([records[index] for index in indices])
+        for index,value in zip(indices,values):scores[index]=value
     return scores
 
 

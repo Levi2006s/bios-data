@@ -92,7 +92,9 @@ def classify(row: dict[str, str]) -> dict[str, str]:
     elif group in {"18", "19"} or "binary" in name:
         base.update(metric="binding_class", unit="0/1", direction="1",
                     better_means="1=binder", valid_min="0", valid_max="1",
-                    censor_policy="reject_outside_range")
+                    tier="Auxiliary", supervised_use="no",
+                    censor_policy="reject_outside_range",
+                    notes="classification-only auxiliary label; excluded from main affinity ranking supervision")
     elif group in {"3", "6"}:
         base.update(metric="predicted_log10_KD", unit="log10(nM)", direction="-1",
                     better_means="smaller predicted KD", label_origin="model_predicted",
@@ -147,7 +149,8 @@ def build(audit_csv: Path, output: Path, overrides: Path) -> None:
         writer.writeheader()
         writer.writerows(
             {"source_file": row["source_file"], "direction": row["direction"]}
-            for row in registry if row["direction"] in {"-1", "1"}
+            for row in registry
+            if row["direction"] in {"-1", "1"} and row["supervised_use"] == "yes"
         )
     print(f"wrote {len(registry)} registry rows to {output}")
 

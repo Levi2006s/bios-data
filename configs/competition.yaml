@@ -1,0 +1,88 @@
+schema_version: 1
+competition:
+  id: 1198
+  name: 基于生成式AI的“X”病毒中和抗体设计挑战赛
+  official_url: https://challenge.datacastle.cn/v3/cmptDetail.html?id=1198
+  rules_verified_on: 2026-07-26
+
+preliminary_stage:
+  task: antigen_conditioned_antibody_affinity_ranking
+  start_date: 2026-04-01
+  end_date: 2026-08-06
+  primary_metric: spearman_correlation
+  advancing_teams: 20
+  metric_implementation:
+    scope: pending_official_evaluator
+    tie_method: pending_official_evaluator
+    missing_value_policy: pending_official_evaluator
+    constant_input_policy: pending_official_evaluator
+
+second_stage:
+  final_target_status: pending_official_release
+  displayed_nipah_g_is_example_only: true
+  candidates_per_team_max: 6
+  accepted_candidate_types: [Fv, VHH]
+  variable_region_only: true
+  must_be_recognized_by_common_numbering_or_annotation: true
+
+  identity_constraints:
+    comparison_operator: greater_than
+    fv:
+      vh_or_vl_full_length_max_identity: 0.90
+      vh_or_vl_cdr3_max_identity: 0.70
+    vhh:
+      full_length_max_identity: 0.90
+      cdr3_max_identity: 0.70
+    qualitative_novelty_review_required: true
+    threshold_compliance_does_not_guarantee_validity: true
+
+  screening:
+    advancing_teams: 20
+    competition_candidates_total: 120
+    positive_controls: 3
+    negative_controls: 3
+    unified_assay_total: 126
+    entry_gate: elisa_binding_positive
+    spr_candidates_per_team_max: 2
+    spr_candidates_total_max: 40
+    if_team_elisa_positive_count_lte_2: all_positive_candidates_enter_spr
+    if_team_elisa_positive_count_gt_2: team_selects_2_using_elisa_expression_aggregation
+    score_requires_successful_spr_affinity_result: true
+    team_score_when_two_candidates_scored: maximum_candidate_final_score
+    failed_or_uninterpretable_result_policy: no_valid_result_in_principle
+
+  component_rank_score:
+    formula: "100 * (N - r) / (N - 1)"
+    N_definition: total_elisa_positive_antibodies
+    r_definition: rank_in_corresponding_metric_with_1_as_best
+    best_rank_score: 100
+    worst_rank_score: 0
+    N_equals_1_policy: pending_official_clarification
+
+  final_score:
+    formula: "0.7 * affinity_score + 0.2 * expression_score + 0.1 * aggregation_score"
+    weights:
+      affinity: 0.70
+      expression: 0.20
+      aggregation: 0.10
+
+metric_directions:
+  affinity_raw:
+    direction: pending_data_dictionary
+    note: 原始指标可能因字段语义不同而方向不同，不作推断
+  expression_raw:
+    direction: higher_is_better
+    status: default_pending_final_data_dictionary
+  aggregation_raw:
+    direction: lower_is_better
+    status: default_pending_final_data_dictionary
+
+engineering:
+  preliminary_priority: maximize_leakage_controlled_spearman
+  train_base_model_from_scratch: false
+  primary_model_family: pretrained_encoder_plus_ranking_head
+  second_stage_heads_are_reservations_only: true
+  prohibited_in_stage_0:
+    - model_training
+    - candidate_sequence_generation
+    - candidate_sequence_modification

@@ -48,8 +48,6 @@ source_file,direction
 初赛-序列数据/17/shanker2024unsupervised_SA58-BQ.1.1_IC50.csv,-1
 初赛-序列数据/17/shanker2024unsupervised_SA58-BQ.1.1_Kd.csv,-1
 初赛-序列数据/17/shanker2024unsupervised_SA58-XBB.1.5_Kd.csv,-1
-初赛-序列数据/18/tsuruta2024avida-hIL6_binary.csv,1
-初赛-序列数据/19/tsuruta2024sarscov2_binary.csv,1
 初赛-序列数据/2/shanehsazzadeh2023unlocking_adcc_ec50.csv,-1
 初赛-序列数据/2/shanehsazzadeh2023unlocking_kd_hher2_fab.csv,1
 初赛-序列数据/2/shanehsazzadeh2023unlocking_kd_hher2_mab.csv,1
@@ -79,5 +77,4 @@ source_file,direction
 初赛-序列数据/8/hutchinson2023enhancement_top200kd_igg.csv,1
 初赛-序列数据/8/hutchinson2023enhancement_top27kd_fab.csv,1
 初赛-序列数据/8/hutchinson2023enhancement_top27kd_igg.csv,1
-初赛-序列数据/9/kirby2024retrospective_ab-SARSCoV2_binary_kd.csv,1
 初赛-序列数据/9/kirby2024retrospective_ab-SARSCoV2_kd.csv,-1

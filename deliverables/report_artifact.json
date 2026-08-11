@@ -1,0 +1,113 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "AbCompass 最终算法与训练技术报告",
+    "description": "非 VHH 抗体亲和力排序系统的模型、验证与交付摘要",
+    "generatedAt": "2026-08-05T12:30:00+08:00",
+    "sources": [
+      {
+        "id": "stage21_metrics",
+        "label": "Stage 21 固定外层融合指标",
+        "path": "artifacts/final/preregistered_outer_parent_delta_ensemble.metrics.json",
+        "query": {
+          "description": "读取 Stage 21 保存的严格外层验证指标",
+          "language": "json",
+          "tables_used": ["preregistered_outer_parent_delta_ensemble.metrics.json"],
+          "filters": ["global_family_v2_split=validation", "biological pair deduplication", "VHH excluded"],
+          "metric_definitions": ["Spearman 为真实秩与预测秩的相关系数", "Top-10 enrichment 为预测前10%对真实高分候选的随机基线倍数"]
+        }
+      },
+      {
+        "id": "stage_reports",
+        "label": "Stage 21–22 阶段报告",
+        "path": "docs/stage21/INNER_FAMILY_PARENT_DELTA_2026-08-04.md",
+        "query": {
+          "description": "阶段模型、内层选择、外层确认和失败消融记录",
+          "language": "markdown",
+          "tables_used": ["Stage 21 report", "Stage 22 report"]
+        }
+      }
+    ],
+    "cards": [
+      {"id": "spearman", "dataset": "headline", "sourceId": "stage21_metrics", "description": "94,848 条去重外层验证记录", "metrics": [{"label": "Spearman", "field": "spearman", "format": "number"}]},
+      {"id": "pearson", "dataset": "headline", "sourceId": "stage21_metrics", "description": "预测分数与目标的线性相关", "metrics": [{"label": "Pearson", "field": "pearson", "format": "number"}]},
+      {"id": "enrichment", "dataset": "headline", "sourceId": "stage21_metrics", "description": "预测前 10% 相对随机选择", "metrics": [{"label": "Top-10 enrichment", "field": "top10", "format": "number"}]},
+      {"id": "sequences", "dataset": "headline", "sourceId": "stage21_metrics", "description": "最终导出的非 VHH 唯一重轻链对", "metrics": [{"label": "抗体序列对", "field": "pairs", "format": "number"}]}
+    ],
+    "charts": [
+      {
+        "id": "progression",
+        "title": "严格口径模型演进",
+        "subtitle": "Stage 22 未超过 Stage 21，因此正式版本保持不变",
+        "type": "bar",
+        "dataset": "progression",
+        "sourceId": "stage_reports",
+        "encodings": {
+          "x": {"field": "stage", "type": "ordinal", "label": "阶段"},
+          "y": {"field": "spearman", "type": "quantitative", "label": "Spearman"},
+          "tooltip": [{"field": "model", "type": "text"}, {"field": "n", "type": "quantitative"}]
+        },
+        "valueFormat": "number",
+        "layout": "full",
+        "maxRows": 8
+      }
+    ],
+    "tables": [
+      {
+        "id": "components",
+        "title": "正式模型组件",
+        "subtitle": "所有权重在训练内部 holdout 选择，外层不搜索",
+        "dataset": "components",
+        "sourceId": "stage21_metrics",
+        "defaultSort": {"field": "weight", "direction": "desc"},
+        "density": "spacious",
+        "columns": [
+          {"field": "component", "label": "组件", "type": "text"},
+          {"field": "weight", "label": "最终权重", "format": "percent"},
+          {"field": "role", "label": "作用", "type": "text"}
+        ]
+      }
+    ],
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# AbCompass 最终算法与训练技术报告"},
+      {"id": "summary", "type": "markdown", "sourceId": "stage21_metrics", "body": "## 技术结论\n\nAbCompass 当前正式版本是 ESM-2 150M 父本条件化位置卷积秩集成。在零精确重轻链跨折重叠、去重后 94,848 条外层验证记录上，Spearman 为 **0.462519**。Stage 22 候选为 0.462285，未晋升。模型可用于候选实验优先级，不等于湿实验 KD 或临床结论。"},
+      {"id": "headline_metrics", "type": "metric-strip", "cardIds": ["spearman", "pearson", "enrichment", "sequences"]},
+      {"id": "evolution_text", "type": "markdown", "body": "## 提升来自防泄漏与父本建模\n\n旧分割中的高分受跨折相同序列影响。当前口径首先消除身份泄漏，再以 ESM 双链空间定义 train-only 父簇，并用绝对残基与共识母本有向突变差分共同排序。下图只展示相互可比的 global-family-v2 结果。"},
+      {"id": "evolution_chart", "type": "chart", "chartId": "progression"},
+      {"id": "architecture", "type": "markdown", "body": "## 正式架构采用稳定主模型与父本双通道\n\nESM-2 150M 提供 640 维重链和轻链冻结表示；KMeans 只拟合训练 embedding；位置卷积保留局部突变；差分通道编码 `(母本残基→当前残基)`；Smooth-L1 与同 comparison group 的 pairwise loss 联合优化。"},
+      {"id": "component_table", "type": "table", "tableId": "components"},
+      {"id": "scope", "type": "markdown", "body": "## 数据范围与指标定义\n\n当前提交排除轻链为空的 VHH。主指标 Spearman 衡量排序一致性；Pearson 衡量线性相关；Top-10 enrichment 衡量预测前 10% 对真实优秀候选的富集倍数。所有数字来自内部严格验证，不是官方 leaderboard 保证。"},
+      {"id": "robustness", "type": "markdown", "sourceId": "stage_reports", "body": "## 稳健性检查支持谨慎晋升\n\nStage 21 相对 Stage 18 增益为 0.000310。以 22,513 个精确抗体对进行 500 次配对 bootstrap，候选胜率为 97.2%，但 95% 区间下界略低于 0。Stage 22 外层下降 0.000234 后被明确拒绝，未用外层结果重新调权。"},
+      {"id": "limitations", "type": "markdown", "body": "## 限制集中在真实谱系和新家族泛化\n\nESM 均值最近邻并不等于实验母本；landscape1 混合多个母本且噪声更高。模型不能保证表达、稳定性、中和、特异性或真实 KD。任意全新候选还需先做 ESM 编码和训练中心分配。"},
+      {"id": "next", "type": "markdown", "body": "## 下一步优先真实母本和残基级表示\n\n1. 获取 parent/round/lineage 元数据；\n2. 使用多内层 family folds；\n3. 引入残基级 ESM 与 IMGT/CDR 对齐；\n4. 研究 top-k 软多父本注意力；\n5. 对重复测量建立显式噪声模型。"},
+      {"id": "questions", "type": "markdown", "body": "## 仍需评审确认的问题\n\n官方候选输入 schema、最终提交列名、是否必须附带第三方 ESM 权重、隐藏集是否包含新抗原，以及平台允许的模型包上限，会影响最后打包方式，但不改变当前验证结论。"}
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-05T12:30:00+08:00",
+    "status": "ready",
+    "datasets": {
+      "headline": [{"spearman": 0.46251903195623867, "pearson": 0.480144855842299, "top10": 4.2276388460096666, "pairs": 22513}],
+      "progression": [
+        {"stage": "Stage 15", "model": "assay expert ensemble", "spearman": 0.4377946, "n": 94848},
+        {"stage": "Stage 16", "model": "two-seed position conv", "spearman": 0.4602623, "n": 94848},
+        {"stage": "Stage 17", "model": "noise and parent proxy", "spearman": 0.4614366, "n": 94848},
+        {"stage": "Stage 18", "model": "ESM parent ensemble", "spearman": 0.462209, "n": 94848},
+        {"stage": "Stage 21", "model": "consensus parent delta", "spearman": 0.4625190, "n": 94848},
+        {"stage": "Stage 22", "model": "local and multiresolution parent", "spearman": 0.4622848, "n": 94848}
+      ],
+      "components": [
+        {"component": "Stage 17 稳定主模型", "weight": 0.775, "role": "多噪声和长度父本代理"},
+        {"component": "K8 绝对父本模型", "weight": 0.151875, "role": "ESM 父簇条件下的绝对残基"},
+        {"component": "共识母本差分模型", "weight": 0.073125, "role": "有向残基突变差分"}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "stage21_metrics", "label": "Stage 21 固定外层融合指标", "path": "artifacts/final/preregistered_outer_parent_delta_ensemble.metrics.json"},
+    {"id": "stage_reports", "label": "Stage 21–22 阶段报告", "path": "docs/stage21/INNER_FAMILY_PARENT_DELTA_2026-08-04.md"}
+  ]
+}

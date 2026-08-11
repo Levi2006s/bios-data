@@ -1,0 +1,12 @@
+name: bioos-abcompass
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.11.7
+  - pip
+  - pytorch=2.2.2
+  - pytorch-cuda=12.1
+  - pip:
+      - -r requirements-lock.txt

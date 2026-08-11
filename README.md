@@ -1,6 +1,10 @@
 # 第四届 Bio-OS 抗体设计基准：可复现起步方案
 
-本项目把赛事提供的异构公开数据整理为统一的抗体序列基准，并提供一条可以在普通电脑上冒烟测试、在云端扩展训练的完整流程：
+> **2026-08-03 任务校正：** 初赛直接任务是对给定抗原和既有候选抗体进行亲和力评分与排序，主指标为 Spearman。当前工程优先级是无泄漏数据治理、排序训练与折外验证；候选序列生成只作为第二阶段预留能力，不进入初赛主训练链路。
+
+> **2026-08-05 当前状态：** 主线已推进至 Stage 22。当前正式模型仍为 Stage 21 的 ESM-2 150M 父本条件化位置卷积集成：在零精确序列重叠、去重后 94,848 条外层验证记录上 Spearman **0.462519**、Pearson **0.480145**、Top-10 enrichment **4.2276**。Stage 22 的局部 ESM 参考与 16 簇候选预注册外层为 0.462285，未晋升。旧分割 0.6683 含 39,272 条跨折相同抗体，只作历史指标。详见 [`Story.md`](Story.md)、[`docs/ESM_TECHNICAL_GUIDE.md`](docs/ESM_TECHNICAL_GUIDE.md) 和 [`docs/STAGES.md`](docs/STAGES.md)。
+
+本项目把赛事提供的异构公开数据整理为统一的抗体序列基准，并提供一条可以在普通电脑上冒烟测试、在云端扩展训练的完整流程。下图是最小基线入口；当前 ESM/CNN 正式路线见阶段文档：
 
 ```text
 原始CSV → 字段/方向统一 → 来源内百分位标签 → 来源级训练/测试拆分
@@ -96,7 +100,16 @@ python -m bioos_benchmark.design \
   --max-mutations 3
 ```
 
-输入 JSON 必须包含抗原序列、重链、轻链，以及重链中精确出现的 `cdrh3`。程序会生成局部变体、预测分数，并对潜在糖基化位点、过度疏水和异常半胱氨酸进行简单惩罚。
+输入 JSON 必须包含抗原序列、重链、轻链，以及重链中精确出现的 `cdrh3`。程序会生成局部变体、预测分数，并对潜在糖基化位点、过度疏水、异常半胱氨酸、脱酰胺和异构化基序进行简单惩罚。默认不突变 CDR-H3 中的半胱氨酸；可用零基下标 `mutable_positions` 限定允许修改的位置：
+
+```json
+{
+  "mutable_positions": [3, 4, 5, 6, 7],
+  "protect_cysteine": true
+}
+```
+
+候选表会同时记录亲本预测、预测增量、突变记法、突变数量、liability 增量和 `in_silico_unvalidated` 状态。模型分数只能用于安排实验优先级，不能解释为已经测得的亲和力改善。
 
 ## 6. 如何升级成参赛模型
 
@@ -110,17 +123,11 @@ python -m bioos_benchmark.design \
 6. 用 IgGM/dyMEAN/RFantibody评估抗原特异性和复合物结构；
 7. 最后做可开发性、多样性和结构置信度的 Pareto 筛选。
 
-详细里程碑见 `PLAN.md`，技术设计见 `docs/ALGORITHM_DESIGN.md`，训练说明见 `docs/TRAINING.md`。
+最终技术设计见 `docs/submission/ALGORITHM_DESIGN.md`，训练与推理见 `docs/submission/TRAINING_AND_INFERENCE.md`，环境安装见 `docs/submission/RUN_ENVIRONMENT.md`。
 
-## 7. 两位同学并行开发 AI 模块
+## 7. 最终提交结构
 
-计算机同学与数学同学的并行方案、公共数据接口、六个模块说明和模块文档模板，统一放在：
-
-```text
-docs/parallel_ai/README.md
-```
-
-两条路线分别独立输出 `record_id + score`，最后再做严格评价和百分位排名集成。开始编码前，两位同学应先共同确认 `docs/parallel_ai/SHARED_INTERFACES.md`。
+算法设计、训练/推理、环境和序列清单统一位于 `docs/submission/`；源代码位于 `src/bioos_benchmark/`，可执行入口位于 `scripts/`，最终非 VHH 序列与校验清单位于 `deliverables/`。历史阶段仅保留当前正式 Stage 21 和未晋升消融 Stage 22。
 
 ## 8. 测试
 
@@ -128,4 +135,4 @@ docs/parallel_ai/README.md
 pytest -q
 ```
 
-所有随机过程都提供固定种子；原始数据只读，处理结果写入 `data/processed`；模型、指标和候选写入 `artifacts`。
+当前为 71 项自动化测试。所有随机过程都提供固定种子；原始数据只读，处理结果写入 `data/processed`；模型、指标和候选写入 `artifacts`。

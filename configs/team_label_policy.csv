@@ -1,0 +1,14 @@
+rule_type,rule_value,affinity_grade,affinity_weight,task_route,comparison_scope,notes
+metric,negative_log10_KD,A,1.0,affinity_rank,comparison_group,SPR/BLI/direct-or-fitted pKD
+metric,KD,A,1.0,affinity_rank,comparison_group,convert unit to M before pKD auxiliary regression
+metric,EC50,C,0.2,ec50_aux,comparison_group,never merge into absolute KD regression
+metric,IC50,C,0.2,ic50_aux,comparison_group,neutralization or functional endpoint
+metric,binding_signal,D,0.0,relative_binding_aux,comparison_group,target signal and OVA risk require separate heads
+metric,binding_class,D,0.0,binder_aux,comparison_group,classification only
+source_contains,shanehsazzadeh2023unlocking_adcc_ec50,D,0.0,adcc_aux,source_file,cell functional endpoint not affinity
+source_contains,AbRank_dataset,C,0.2,abrank_group_rank,comparison_group,split by measurement type and provenance
+source_contains,li2023machine,B,0.6,alphaseq_rank,comparison_group,experimental-derived calibrated estimate
+source_contains,engelhart2022dataset,B,0.6,alphaseq_rank,comparison_group,experimental-derived calibrated estimate
+source_contains,makowski2022cooptimization_igg_ova,D,0.0,polyreactivity_risk,source_file,higher raw signal means worse development risk
+source_contains,makowski2022cooptimization_iso_ova,D,0.0,polyreactivity_risk,source_file,higher raw signal means worse development risk
+source_contains,kothiwal2025htp_,A,1.0,route_by_metric,comparison_group,SPR affinity and EC50 auxiliary must remain separate
